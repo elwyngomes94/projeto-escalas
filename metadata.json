@@ -1,0 +1,5 @@
+{
+  "name": "SGEP - Sistema de Gestão de Escalas Policiais",
+  "description": "Sistema completo para gerenciamento de efetivo, pelotões e geração automatizada de escalas 1x3 para unidades militares.",
+  "requestFramePermissions": []
+}

@@ -17,7 +17,7 @@ import { RosterView } from './views/RosterView';
 import { ReportView } from './views/ReportView';
 import { DashboardView } from './views/DashboardView';
 
-type View = 'dashboard' | 'officers' | 'platoons' | 'rosters' | 'reports';
+export type View = 'dashboard' | 'officers' | 'platoons' | 'rosters' | 'reports';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -124,7 +124,7 @@ const App: React.FC = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 lg:p-8 pb-20 lg:pb-8">
-          {currentView === 'dashboard' && <DashboardView />}
+          {currentView === 'dashboard' && <DashboardView onNavigate={handleNavigate} />}
           {currentView === 'officers' && <OfficerView />}
           {currentView === 'platoons' && <PlatoonView />}
           {currentView === 'rosters' && <RosterView />}

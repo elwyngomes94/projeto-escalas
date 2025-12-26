@@ -3,8 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Users, ShieldCheck, CalendarCheck, AlertTriangle, Plus, FileText } from 'lucide-react';
 import { loadData } from '../store';
 import { Officer, Platoon, Garrison } from '../types';
+import { View } from '../App';
 
-export const DashboardView: React.FC = () => {
+interface DashboardViewProps {
+  onNavigate: (view: View) => void;
+}
+
+export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState({
     officers: 0,
     platoons: 0,
@@ -80,7 +85,10 @@ export const DashboardView: React.FC = () => {
             Ações Rápidas
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all group">
+            <button 
+              onClick={() => onNavigate('officers')}
+              className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-amber-500 hover:bg-amber-50 transition-all group active:scale-[0.98]"
+            >
               <div className="bg-white p-2 rounded-lg shadow-sm mr-4 group-hover:bg-amber-100">
                 <Plus className="w-5 h-5 text-amber-600" />
               </div>
@@ -89,7 +97,10 @@ export const DashboardView: React.FC = () => {
                 <span className="text-[10px] text-slate-500">Cadastro individual</span>
               </div>
             </button>
-            <button className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
+            <button 
+              onClick={() => onNavigate('rosters')}
+              className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 transition-all group active:scale-[0.98]"
+            >
               <div className="bg-white p-2 rounded-lg shadow-sm mr-4 group-hover:bg-emerald-100">
                 <CalendarCheck className="w-5 h-5 text-emerald-600" />
               </div>
@@ -98,7 +109,10 @@ export const DashboardView: React.FC = () => {
                 <span className="text-[10px] text-slate-500">Escala 1x3 ou 48h</span>
               </div>
             </button>
-            <button className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group sm:col-span-2">
+            <button 
+              onClick={() => onNavigate('reports')}
+              className="flex items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group sm:col-span-2 active:scale-[0.98]"
+            >
               <div className="bg-white p-2 rounded-lg shadow-sm mr-4 group-hover:bg-blue-100">
                 <FileText className="w-5 h-5 text-blue-600" />
               </div>

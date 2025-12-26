@@ -34,7 +34,7 @@ export const loadData = async (): Promise<StorageData> => {
   const garrisons: Garrison[] = (garrisonsData || []).map((g: any) => ({
     id: g.id,
     name: g.name,
-    platoon_id: g.platoon_id,
+    platoonId: g.platoon_id,
     teams: g.teams as TeamConfig,
     dutyType: g.duty_type,
     specificDates: g.specific_dates,
@@ -56,12 +56,12 @@ export const upsertOfficer = async (officer: Officer) => {
     custom_reason: officer.customReason
   };
 
-  // Só envia o ID se ele for um UUID válido (evita erro de string vazia)
+  // Importante: Se for uma importação, o ID costuma ser vazio. 
+  // O Supabase usará a matrícula (onConflict) para achar o registro se o ID não for enviado.
   if (officer.id && officer.id.length > 20) {
     payload.id = officer.id;
   }
 
-  // Define que a matrícula é a chave única para evitar duplicados
   const { data, error } = await supabase
     .from('officers')
     .upsert(payload, { onConflict: 'registration' });
@@ -76,12 +76,14 @@ export const deleteOfficer = async (id: string) => {
 };
 
 export const upsertPlatoon = async (platoon: Platoon) => {
-  const { error } = await supabase.from('platoons').upsert({
-    id: platoon.id.length > 20 ? platoon.id : undefined,
+  const payload: any = {
     name: platoon.name,
     city: platoon.city,
     commander_id: platoon.commanderId || null
-  });
+  };
+  if (platoon.id && platoon.id.length > 20) payload.id = platoon.id;
+
+  const { error } = await supabase.from('platoons').upsert(payload);
   if (error) throw error;
 };
 
@@ -91,8 +93,7 @@ export const deletePlatoon = async (id: string) => {
 };
 
 export const upsertGarrison = async (garrison: Garrison) => {
-  const { error } = await supabase.from('garrisons').upsert({
-    id: garrison.id.length > 20 ? garrison.id : undefined,
+  const payload: any = {
     name: garrison.name,
     platoon_id: garrison.platoonId,
     teams: garrison.teams,
@@ -100,7 +101,10 @@ export const upsertGarrison = async (garrison: Garrison) => {
     specific_dates: garrison.specificDates,
     start_time: garrison.startTime,
     end_time: garrison.endTime
-  });
+  };
+  if (garrison.id && garrison.id.length > 20) payload.id = garrison.id;
+
+  const { error } = await supabase.from('garrisons').upsert(payload);
   if (error) throw error;
 };
 

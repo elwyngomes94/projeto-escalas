@@ -8,13 +8,13 @@ const SUPABASE_KEY = 'sua-chave-anon-public';
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /*
-  SCRIPT SQL PARA EXECUTAR NO SUPABASE SQL EDITOR:
+  SCRIPT SQL ATUALIZADO (Execute no SQL Editor do Supabase):
 
-  -- Tabela de Oficiais/Praças
-  CREATE TABLE officers (
+  -- 1. Tabela de Oficiais/Praças com restrição UNIQUE na matrícula
+  CREATE TABLE IF NOT EXISTS officers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     full_name TEXT NOT NULL,
-    registration TEXT UNIQUE NOT NULL,
+    registration TEXT UNIQUE NOT NULL, -- Matrícula deve ser ÚNICA para o upsert funcionar
     rank TEXT NOT NULL,
     war_name TEXT NOT NULL,
     is_available BOOLEAN DEFAULT true,
@@ -23,8 +23,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- Tabela de Pelotões
-  CREATE TABLE platoons (
+  -- 2. Tabela de Pelotões
+  CREATE TABLE IF NOT EXISTS platoons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     city TEXT NOT NULL,
@@ -32,8 +32,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- Tabela de Guarnições/Escalas
-  CREATE TABLE garrisons (
+  -- 3. Tabela de Guarnições/Escalas
+  CREATE TABLE IF NOT EXISTS garrisons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     platoon_id UUID REFERENCES platoons(id) ON DELETE CASCADE,
@@ -45,8 +45,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- Habilitar RLS (Opcional para desenvolvimento, recomendado para produção)
+  -- 4. Habilitar RLS (Opcional, mas recomendado liberar para a chave anon se for ambiente de teste)
   -- ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
   -- CREATE POLICY "Allow public access" ON officers FOR ALL USING (true);
-  -- (Repetir para as outras tabelas)
+  -- (Repetir para as outras se necessário)
 */

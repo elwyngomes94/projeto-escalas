@@ -33,17 +33,12 @@ export const ReportView: React.FC = () => {
     const cycleDays = g.dutyType === DutyType.STANDARD_48X144 ? 8 : 4;
     const workDuration = g.dutyType === DutyType.STANDARD_48X144 ? 2 : 1;
 
-    // Usar meio dia para evitar problemas de fuso horário na data base
     const baseStart = new Date(team.startDate + 'T12:00:00');
     const days: string[] = [];
 
-    // Encontrar a primeira ocorrência do ciclo no mês ou antes
-    let current = new Date(baseStart);
-    
-    // Se a data base for futura ao mês, não há serviço neste mês
-    if (current > lastOfMonth) return [];
+    if (baseStart > lastOfMonth) return [];
 
-    // Ajustar 'current' para o início do ciclo mais próximo do início do mês
+    let current = new Date(baseStart);
     const diffTime = firstOfMonth.getTime() - current.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
@@ -52,10 +47,8 @@ export const ReportView: React.FC = () => {
       current.setDate(current.getDate() + (cyclesToSkip * cycleDays));
     }
 
-    // Retroceder um ciclo para garantir que não perdemos dias que começaram no fim do mês anterior mas pegam o início deste
     current.setDate(current.getDate() - cycleDays);
 
-    // Iterar pelos ciclos até o fim do mês
     while (current <= lastOfMonth) {
       for (let i = 0; i < workDuration; i++) {
         const d = new Date(current);
@@ -89,7 +82,10 @@ export const ReportView: React.FC = () => {
           const mils = getOfficers(g.teams[t].officerIds);
           const days = getTeamDays(g, t, selectedMonth);
           if (mils.length > 0) {
-            text += `EQUIPE ${t}: ${mils.map(m => `${m.rank} ${m.warName}`).join(', ')}\n`;
+            text += `EQUIPE ${t}: ${mils.map((m, idx) => {
+              const role = idx === 0 ? 'CMT' : idx === 1 ? 'MOT' : 'PATR';
+              return `${m.rank} ${m.registration} ${m.warName} (${role})`;
+            }).join(', ')}\n`;
             text += `DATAS: ${days.join(', ')}\n`;
           }
         });
@@ -113,6 +109,12 @@ export const ReportView: React.FC = () => {
     ...p,
     garrisons: data.garrisons.filter(g => g.platoonId === p.id)
   })).filter(p => p.garrisons.length > 0);
+
+  const getRoleLabel = (index: number) => {
+    if (index === 0) return 'COMANDANTE';
+    if (index === 1) return 'MOTORISTA';
+    return 'PATRULHEIRO';
+  };
 
   return (
     <div className="space-y-6">
@@ -139,40 +141,40 @@ export const ReportView: React.FC = () => {
 
       <div ref={reportRef} className="space-y-4 no-print-space bg-gray-50 py-4">
         {platoonsWithGarrisons.map((platoon) => (
-          <div key={platoon.id} className="bg-white p-8 md:p-16 print:p-8 min-h-[1100px] text-slate-900 font-serif mx-auto max-w-[900px] shadow-2xl print:shadow-none print:break-after-page border border-slate-200 print:border-none relative overflow-hidden">
+          <div key={platoon.id} className="bg-white p-8 md:p-14 print:p-8 min-h-[1100px] text-slate-900 font-serif mx-auto max-w-[950px] shadow-2xl print:shadow-none print:break-after-page border border-slate-300 print:border-none relative overflow-hidden">
             
-            {/* Watermark simulada para elegância */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none select-none rotate-[-45deg]">
-               <h1 className="text-[120px] font-black uppercase whitespace-nowrap">POLÍCIA MILITAR</h1>
+            {/* Elemento Institucional de Fundo */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none select-none rotate-[-45deg] z-0">
+               <h1 className="text-[140px] font-black uppercase whitespace-nowrap">POLÍCIA MILITAR</h1>
             </div>
 
-            {/* Cabeçalho Profissional */}
-            <div className="text-center space-y-1 mb-10 relative z-10">
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-500">Estado de Pernambuco</p>
-              <p className="text-[15px] font-black uppercase text-slate-900">Secretaria de Defesa Social</p>
-              <div className="inline-block border-b-4 border-double border-slate-900 px-6 py-1 mb-2">
-                 <p className="text-[15px] font-black uppercase text-slate-900">Polícia Militar de Pernambuco</p>
+            {/* Cabeçalho Oficial Militar */}
+            <div className="text-center space-y-1 mb-12 relative z-10">
+              <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-500">Estado de Pernambuco</p>
+              <p className="text-[14px] font-black uppercase text-slate-900">Secretaria de Defesa Social</p>
+              <div className="inline-block border-b-2 border-slate-900 px-8 mb-2">
+                 <p className="text-[16px] font-black uppercase text-slate-900">Polícia Militar de Pernambuco</p>
               </div>
-              <p className="text-[13px] font-bold uppercase text-slate-800 tracking-wide">{platoon.name}</p>
+              <p className="text-[12px] font-bold uppercase text-slate-700 tracking-wider">{platoon.name}</p>
               
-              <div className="mt-10 py-4 border-y border-slate-200">
-                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">Escala de Serviço Ordinária</h1>
+              <div className="mt-8 py-6 border-y-2 border-slate-900">
+                <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">Escala de Serviço Operacional</h1>
                 <p className="text-sm font-bold uppercase text-slate-600 mt-2">Mês: {getFormattedMonth()} / Ano: {getYear()}</p>
               </div>
             </div>
 
             {platoon.garrisons.map(garrison => (
-              <div key={garrison.id} className="mb-10 page-break-inside-avoid relative z-10">
-                <div className="bg-slate-900 text-white p-2 text-center text-xs font-black uppercase tracking-[0.15em] mb-0 rounded-t-sm shadow-sm">
-                  POSTO DE SERVIÇO / VIATURA: {garrison.name}
+              <div key={garrison.id} className="mb-12 page-break-inside-avoid relative z-10">
+                <div className="bg-slate-900 text-white p-2.5 text-center text-[11px] font-black uppercase tracking-[0.2em] rounded-t-sm">
+                  GUARNIÇÃO: {garrison.name}
                 </div>
-                <table className="w-full border-collapse border-2 border-slate-900 text-[10px] shadow-sm">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="border-2 border-slate-900 p-2 w-[12%] uppercase font-black text-center text-slate-800">Regime</th>
-                      <th className="border-2 border-slate-900 p-2 w-[53%] uppercase font-black text-left text-slate-800">Efetivo Escalado (CMT / AUX)</th>
-                      <th className="border-2 border-slate-900 p-2 w-[25%] uppercase font-black text-center text-slate-800">Dias de Atuação</th>
-                      <th className="border-2 border-slate-900 p-2 w-[10%] uppercase font-black text-center text-slate-800">Turno</th>
+                <table className="w-full border-collapse border-2 border-slate-900 text-[10px]">
+                  <thead className="bg-slate-100">
+                    <tr>
+                      <th className="border-2 border-slate-900 p-2 w-[12%] uppercase font-black text-center">Regime</th>
+                      <th className="border-2 border-slate-900 p-2 w-[53%] uppercase font-black text-left pl-4">Efetivo Escalado (Grad/Matr/Guerra)</th>
+                      <th className="border-2 border-slate-900 p-2 w-[25%] uppercase font-black text-center">Datas de Serviço</th>
+                      <th className="border-2 border-slate-900 p-2 w-[10%] uppercase font-black text-center">Turno</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -182,30 +184,36 @@ export const ReportView: React.FC = () => {
                       if (teamOfficers.length === 0) return null;
 
                       return (
-                        <tr key={teamKey} className="even:bg-slate-50/50">
+                        <tr key={teamKey} className="group">
                           {idx === 0 && (
-                            <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-black align-middle text-sm bg-white text-slate-700">
+                            <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-black align-middle text-[12px] bg-white">
                               {garrison.dutyType}
                             </td>
                           )}
-                          <td className="border-2 border-slate-900 p-3 leading-loose">
-                            <div className="flex items-center space-x-2 mb-1">
-                               <span className="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded">EQ {teamKey}</span>
+                          <td className="border-2 border-slate-900 p-3 bg-white">
+                            <div className="flex items-center space-x-2 mb-2">
+                               <span className="bg-amber-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm">EQUIPE {teamKey}</span>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5 pl-1">
                                 {teamOfficers.map((off, oIdx) => (
-                                <div key={off.id} className="flex justify-between items-center border-b border-dotted border-slate-300 pb-0.5">
-                                    <span className="uppercase font-medium">{off.rank} {off.warName} <span className="text-[8px] text-slate-400">({off.registration})</span></span>
-                                    <span className="font-black text-[9px] text-slate-400 uppercase italic">{oIdx === 0 ? 'CMT' : 'AUX'}</span>
+                                <div key={off.id} className="flex justify-between items-center border-b border-slate-200 pb-1">
+                                    <div className="flex flex-col">
+                                       <span className="uppercase font-bold text-slate-900 text-[11px]">
+                                          {off.rank} <span className="text-slate-500 font-mono text-[10px] ml-1">{off.registration}</span> - {off.warName}
+                                       </span>
+                                    </div>
+                                    <span className="font-black text-[9px] text-slate-400 uppercase italic tracking-tighter">
+                                       {getRoleLabel(oIdx)}
+                                    </span>
                                 </div>
                                 ))}
                             </div>
                           </td>
-                          <td className="border-2 border-slate-900 p-2 text-center font-black tracking-[0.1em] text-slate-900 align-middle text-[11px] bg-slate-50/20">
-                            {days.length > 0 ? days.join(', ') : <span className="text-slate-300">--</span>}
+                          <td className="border-2 border-slate-900 p-2 text-center font-black tracking-[0.1em] text-slate-900 align-middle text-[12px] bg-slate-50/30">
+                            {days.length > 0 ? days.join(', ') : '--'}
                           </td>
                           {idx === 0 && (
-                            <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-black align-middle text-[10px] bg-white">
+                            <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-black align-middle text-[11px] bg-white">
                               07:00h<br/>às<br/>07:00h
                             </td>
                           )}
@@ -217,58 +225,60 @@ export const ReportView: React.FC = () => {
               </div>
             ))}
 
-            <div className="mt-24 flex flex-col items-center text-[11px] font-bold uppercase relative z-10">
-              <div className="w-full grid grid-cols-2 gap-20">
+            <div className="mt-32 flex flex-col items-center text-[11px] font-bold uppercase relative z-10">
+              <div className="w-full grid grid-cols-2 gap-24">
                  <div className="text-center">
-                    <div className="border-t-2 border-slate-900 pt-3 mx-auto w-4/5">
-                      <p className="text-slate-900 font-black">{data.officers.find(o => o.id === platoon.commanderId)?.rank || 'COMANDANTE'} PM {data.officers.find(o => o.id === platoon.commanderId)?.warName || ''}</p>
-                      <p className="text-[10px] text-slate-500 font-bold mt-1">COMANDANTE DO {platoon.name}</p>
+                    <div className="border-t-2 border-slate-900 pt-4 mx-auto w-4/5">
+                      <p className="text-slate-900 font-black leading-tight">
+                         {data.officers.find(o => o.id === platoon.commanderId)?.rank || 'COMANDANTE'} PM {data.officers.find(o => o.id === platoon.commanderId)?.warName || ''}
+                      </p>
+                      <p className="text-[10px] text-slate-600 font-bold mt-1">COMANDANTE DA UNIDADE</p>
                     </div>
                  </div>
                  <div className="text-center">
-                    <div className="border-t-2 border-slate-900 pt-3 mx-auto w-4/5">
-                      <p className="text-slate-900 font-black">CHEFE DA 1ª SEÇÃO</p>
-                      <p className="text-[10px] text-slate-500 font-bold mt-1">Responsável pela Publicação</p>
+                    <div className="border-t-2 border-slate-900 pt-4 mx-auto w-4/5">
+                      <p className="text-slate-900 font-black leading-tight">CHEFE DA P/1</p>
+                      <p className="text-[10px] text-slate-600 font-bold mt-1">Sessão de Pessoal / Publicação</p>
                     </div>
                  </div>
               </div>
             </div>
-            
-            <div className="mt-20 text-[8px] text-slate-300 font-mono text-center no-print">
-               SGEP - SISTEMA DE GESTÃO DE ESCALAS POLICIAIS | VERSÃO 1.0
-            </div>
           </div>
         ))}
 
-        {/* Quadro de Indisponíveis com design profissional */}
-        <div className="bg-white p-12 print:p-8 min-h-[500px] text-slate-900 font-serif mx-auto max-w-[900px] shadow-2xl print:shadow-none mb-10 border border-slate-200 print:border-none relative z-10">
-          <div className="border-b-4 border-double border-slate-900 pb-3 mb-8 text-center">
-            <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Relação de Efetivo Indisponível para o Período</h2>
+        <div className="bg-white p-12 print:p-8 min-h-[500px] text-slate-900 font-serif mx-auto max-w-[950px] shadow-2xl print:shadow-none mb-12 border border-slate-300 print:border-none relative z-10">
+          <div className="border-b-4 border-slate-900 pb-4 mb-10 text-center">
+            <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Relação de Efetivo em Afastamento</h2>
+            <p className="text-xs font-bold text-slate-500 mt-1 uppercase">Controle Operacional de Indisponibilidade</p>
           </div>
-          <table className="w-full border-collapse border-2 border-slate-900 text-[10px] shadow-sm">
+          <table className="w-full border-collapse border-2 border-slate-900 text-[10px]">
             <thead>
               <tr className="bg-slate-900 text-white">
-                <th className="border-2 border-slate-900 p-3 w-[60%] uppercase font-black tracking-wider text-left">Militar (Posto / Matrícula / Nome)</th>
-                <th className="border-2 border-slate-900 p-3 w-[40%] uppercase font-black tracking-wider text-center">Situação / Justificativa</th>
+                <th className="border-2 border-slate-900 p-3 w-[65%] uppercase font-black tracking-widest text-left pl-6">Militar (Posto / Matrícula / Nome Completo)</th>
+                <th className="border-2 border-slate-900 p-3 w-[35%] uppercase font-black tracking-widest text-center">Motivo do Afastamento</th>
               </tr>
             </thead>
             <tbody>
               {getUnavailableOfficers().length > 0 ? getUnavailableOfficers().map(off => (
                 <tr key={off.id} className="even:bg-slate-50">
-                  <td className="border-2 border-slate-900 p-3 font-bold uppercase px-6">{off.rank} PM - {off.registration} - {off.fullName}</td>
-                  <td className="border-2 border-slate-900 p-3 font-black uppercase text-center text-red-700 bg-red-50/10 italic">{off.unavailabilityReason}</td>
+                  <td className="border-2 border-slate-900 p-3 font-bold uppercase px-8">
+                     {off.rank} PM - {off.registration} - {off.fullName}
+                  </td>
+                  <td className="border-2 border-slate-900 p-3 font-black uppercase text-center text-red-700 bg-red-50/5">
+                     {off.unavailabilityReason}
+                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={2} className="border-2 border-slate-900 p-10 text-center text-slate-400 italic font-medium uppercase tracking-widest">Nenhum militar afastado registrado.</td>
+                  <td colSpan={2} className="border-2 border-slate-900 p-12 text-center text-slate-300 italic font-bold uppercase tracking-[0.2em]">Nenhuma restrição de efetivo registrada para o período.</td>
                 </tr>
               )}
             </tbody>
           </table>
-          <div className="mt-24 text-center text-[11px] font-bold uppercase">
-             <div className="border-t-2 border-slate-900 pt-4 mx-auto w-1/3">
-                <p className="font-black text-slate-900">CHEFE DA 1ª SEÇÃO</p>
-                <p className="text-[10px] text-slate-500 font-bold mt-1">Controle de Efetivo</p>
+          <div className="mt-28 text-center text-[11px] font-bold uppercase">
+             <div className="border-t-2 border-slate-900 pt-5 mx-auto w-1/3">
+                <p className="font-black text-slate-900">CHEFE DA P/1</p>
+                <p className="text-[10px] text-slate-600 font-bold mt-1">Conferência de Efetivo</p>
              </div>
           </div>
         </div>

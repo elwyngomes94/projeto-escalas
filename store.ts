@@ -34,7 +34,7 @@ export const loadData = async (): Promise<StorageData> => {
   const garrisons: Garrison[] = (garrisonsData || []).map((g: any) => ({
     id: g.id,
     name: g.name,
-    platoonId: g.platoon_id,
+    platoon_id: g.platoon_id,
     teams: g.teams as TeamConfig,
     dutyType: g.duty_type,
     specificDates: g.specific_dates,
@@ -46,8 +46,7 @@ export const loadData = async (): Promise<StorageData> => {
 };
 
 export const upsertOfficer = async (officer: Officer) => {
-  const { data, error } = await supabase.from('officers').upsert({
-    id: officer.id.length > 20 ? officer.id : undefined,
+  const payload: any = {
     full_name: officer.fullName,
     registration: officer.registration,
     rank: officer.rank,
@@ -55,7 +54,18 @@ export const upsertOfficer = async (officer: Officer) => {
     is_available: officer.isAvailable,
     unavailability_reason: officer.unavailabilityReason,
     custom_reason: officer.customReason
-  });
+  };
+
+  // Só envia o ID se ele for um UUID válido (evita erro de string vazia)
+  if (officer.id && officer.id.length > 20) {
+    payload.id = officer.id;
+  }
+
+  // Define que a matrícula é a chave única para evitar duplicados
+  const { data, error } = await supabase
+    .from('officers')
+    .upsert(payload, { onConflict: 'registration' });
+
   if (error) throw error;
   return data;
 };

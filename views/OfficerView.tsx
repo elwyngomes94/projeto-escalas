@@ -4,13 +4,12 @@ import { Plus, Edit2, Trash2, Search, UserCheck, UserX, AlertCircle, FileUp, X, 
 import { loadData, upsertOfficer, deleteOfficer } from '../store';
 import { Officer, Rank, UnavailabilityReason } from '../types';
 
-const OFFICIAL_LIST_RAW = `
-CRISTOVÃO	1021230	TEN.CEL	CRISTOVÃO ISAAC RODRIGUES MAGALHÃES
+const OFFICIAL_LIST_RAW = `CRISTOVÃO	1021230	TEN.CEL	CRISTOVÃO ISAAC RODRIGUES MAGALHÃES
 EDVAN	9807721	CAP	EDVAN ARRUDA FERRAZ
 MYKE	119793 2	2º TEN	JOSEPH MYKE DA SILVA
 TAVARES	1260782	2º TEN	PAULO HENRIQUE DA SILVA TAVARES
 HUMBERTO	1260790	2º TEN	HUMBERTO VICTOR ALBUQUERQUE DE VASCONCELOS
-RONALDO	9504001	SD	RONALDO DO NASCIMENTO LOPES
+RONALDO	9504001	119793- 2	RONALDO DO NASCIMENTO LOPES
 E. PEREIRA	1030434	ST	EDINALDO PEREIRA DA SILVA
 BERREDO	1055275	ST	DOALCEY BERREDO VILANOVA DOS SANTOS
 EDMAR	1056190	1º SGT	EDMAR PEREIRA DA SILVA FILHO
@@ -23,14 +22,14 @@ EUDES	9400303	2º SGT	EUDES VITO ARAUJO
 WILDES	9403191	2º SGT	CARLOS WILDES DA SILVA FILHO
 CALDEIRA	9403116	2º SGT	EDSON CALDEIRA DA SILVA
 TOMAZ	1063863	2º SGT	SAMUEL TOMAZ SANTOS DE JESUS
-NERI	9807080	2º SGT	SILVANIO NERI DA SILVA
+NERI	9807080	2'º SGT	SILVANIO NERI DA SILVA
 ERIVAN	1053817	2º SGT	JOSE ERIVAN LIMA SILVINO
 ERONILDO	1064720	2º SGT	JACKSON ERONILDO NUNES DE SOUZA
 PRISCILA	1074636	3º SGT	PRISCILA RAQUEL TORRES CIPRIANO DA SILVA
 KLEBER	1070517	2º SGT	KLEBER DE SOUSA BATISTA
 DEYWD	1076434	3º SGT	DEYWD ALEXANDRE TEIXEIRA SARAIVA
 ERIVANO	1077007	3º SGT	ERIVANO FRANCISCO DE OLIVEIRA
-JEFFERSON	1079700	3º SGT	JEFFERSON THIAGO CIPRIANO DA SILVA
+JEFFERSON	1079700	3ºSGT	JEFFERSON THIAGO CIPRIANO DA SILVA
 DUARTE SOUZA	1065432	3º SGT	WASHINTON ANTONIO DUARTE DE SOUZA
 P. JACINTO	1092901	3º SGT	FRANCISCO PEREIRA JACINTO
 MOTA	1101471	3º SGT	ANDERSON MOTA DOS SANTOS
@@ -122,9 +121,10 @@ MARIA	1260901	SD	MARIA IARA DE MORAIS ROSENDO
 LEAL	1261282	SD	EVALDO LEAL FILHO
 ELIEUZA LEAL	1263846	SD	ELIEUZA LEAL LIMA
 RIOMAR	320536	2º SGT	RIOMAR
+CARLOS	1090534	3º SGT	CARLOS ANTONIO NOVAES PEREIRA
+ALEXANDRO	1047752	2ª SGT	ALEXANDRO
 TERTO	1218360	SD	TERTO
-WESLEY LEITE	1206770	SD	JOSÉ WESLEY ARAUJO LEITE
-`;
+WESLEY LEITE	1206770	SD	JOSÉ WESLEY ARAUJO LEITE`;
 
 export const OfficerView: React.FC = () => {
   const [officers, setOfficers] = useState<Officer[]>([]);
@@ -155,22 +155,22 @@ export const OfficerView: React.FC = () => {
   }, []);
 
   const mapRank = (rankStr: string): Rank => {
-    const cleanRank = rankStr.trim().toUpperCase();
+    const cleanRank = rankStr?.trim().toUpperCase() || '';
     if (cleanRank.includes('TEN.CEL')) return Rank.TC;
     if (cleanRank.includes('CAP')) return Rank.CAP;
     if (cleanRank.includes('2º TEN') || cleanRank.includes('2ºTEN')) return Rank.TEN2;
     if (cleanRank.includes('1º TEN')) return Rank.TEN1;
     if (cleanRank.includes('ST')) return Rank.SUB;
     if (cleanRank.includes('1º SGT')) return Rank.SGT1;
-    if (cleanRank.includes('2º SGT') || cleanRank.includes('2ª SGT')) return Rank.SGT2;
+    if (cleanRank.includes('2º SGT') || cleanRank.includes('2ª SGT') || cleanRank.includes("2'º SGT")) return Rank.SGT2;
     if (cleanRank.includes('3º SGT') || cleanRank.includes('3ºSGT')) return Rank.SGT3;
     if (cleanRank.includes('CB')) return Rank.CB;
     if (cleanRank.includes('SD')) return Rank.SD;
-    return Rank.SD;
+    return Rank.SD; // Default para SD em caso de inconsistência
   };
 
   const handleImportOfficialList = async () => {
-    if (!confirm(`Deseja importar a lista de efetivo? Isso adicionará aproximadamente ${OFFICIAL_LIST_RAW.trim().split('\n').length} policiais ao banco de dados.`)) return;
+    if (!confirm(`Deseja importar a lista oficial de efetivo? Isso processará aproximadamente ${OFFICIAL_LIST_RAW.trim().split('\n').length} registros.`)) return;
     
     setIsImporting(true);
     const lines = OFFICIAL_LIST_RAW.trim().split('\n');
@@ -178,16 +178,25 @@ export const OfficerView: React.FC = () => {
     let errorCount = 0;
 
     for (const line of lines) {
-      const [warName, reg, rankStr, fullName] = line.split('\t').map(s => s?.trim());
-      if (!reg || !fullName) continue;
+      const parts = line.split('\t').map(s => s?.trim());
+      // A estrutura esperada é: NOME_GUERRA \t MATRICULA \t POSTO/GRAD \t NOME_COMPLETO
+      const warNamePart = parts[0];
+      const regPart = parts[1];
+      const rankPart = parts[2];
+      const fullNamePart = parts[3];
+
+      if (!regPart || !fullNamePart) {
+        console.warn('Linha inválida pulada:', line);
+        continue;
+      }
 
       try {
         const officer: any = {
-          id: '', // Supabase gera UUID
-          fullName: fullName,
-          registration: reg.replace(/\s+/g, ''),
-          rank: mapRank(rankStr),
-          warName: warName,
+          id: '', // Supabase gera UUID se vazio
+          fullName: fullNamePart,
+          registration: regPart.replace(/\s+/g, ''),
+          rank: mapRank(rankPart),
+          warName: warNamePart || fullNamePart.split(' ')[0],
           isAvailable: true,
           unavailabilityReason: UnavailabilityReason.NONE,
           customReason: ''
@@ -195,7 +204,7 @@ export const OfficerView: React.FC = () => {
         await upsertOfficer(officer);
         successCount++;
       } catch (e) {
-        console.error('Erro ao importar policial:', fullName, e);
+        console.error('Erro ao importar policial:', fullNamePart, e);
         errorCount++;
       }
     }

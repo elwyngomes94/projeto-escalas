@@ -56,7 +56,8 @@ export const upsertOfficer = async (officer: Officer) => {
     custom_reason: officer.customReason || null
   };
 
-  // Garante que o ID só é enviado se for um UUID válido e não uma string vazia
+  // Se o ID não existir ou for curto demais (não for um UUID real), 
+  // deixamos o Supabase criar um novo ou encontrar pela matrícula via onConflict
   if (officer.id && officer.id.length > 20) {
     payload.id = officer.id;
   }
@@ -80,7 +81,10 @@ export const upsertPlatoon = async (platoon: Platoon) => {
     city: platoon.city,
     commander_id: platoon.commanderId || null
   };
-  if (platoon.id && platoon.id.length > 20) payload.id = platoon.id;
+  
+  if (platoon.id && platoon.id.length > 20) {
+    payload.id = platoon.id;
+  }
 
   const { error } = await supabase.from('platoons').upsert(payload);
   if (error) throw error;
@@ -101,7 +105,10 @@ export const upsertGarrison = async (garrison: Garrison) => {
     start_time: garrison.startTime,
     end_time: garrison.endTime
   };
-  if (garrison.id && garrison.id.length > 20) payload.id = garrison.id;
+  
+  if (garrison.id && garrison.id.length > 20) {
+    payload.id = garrison.id;
+  }
 
   const { error } = await supabase.from('garrisons').upsert(payload);
   if (error) throw error;

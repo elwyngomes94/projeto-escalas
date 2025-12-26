@@ -9,13 +9,16 @@ import {
   X, 
   LayoutDashboard,
   Bell,
-  UserCircle
+  UserCircle,
+  Database,
+  ExternalLink
 } from 'lucide-react';
 import { OfficerView } from './views/OfficerView';
 import { PlatoonView } from './views/PlatoonView';
 import { RosterView } from './views/RosterView';
 import { ReportView } from './views/ReportView';
 import { DashboardView } from './views/DashboardView';
+import { isConfigured } from './supabase';
 
 export type View = 'dashboard' | 'officers' | 'platoons' | 'rosters' | 'reports';
 
@@ -102,6 +105,23 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Banner de Configuração Ausente */}
+        {!isConfigured && (
+          <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-between no-print animate-pulse">
+            <div className="flex items-center text-xs font-bold">
+              <Database className="w-4 h-4 mr-2" />
+              CONFIGURAÇÃO DO BANCO DE DADOS PENDENTE (ERRO DE REDE)
+            </div>
+            <a 
+              href="https://supabase.com" 
+              target="_blank" 
+              className="flex items-center text-[10px] bg-white/20 px-2 py-1 rounded hover:bg-white/30 transition-colors"
+            >
+              CRIAR SUPABASE <ExternalLink className="w-3 h-3 ml-1" />
+            </a>
+          </div>
+        )}
+
         <header className="h-16 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 no-print">
           <div className="flex items-center">
             <button 

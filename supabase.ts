@@ -4,21 +4,23 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js';
 /**
  * CONFIGURAÇÃO DO SUPABASE
  * 
- * As credenciais abaixo tentam carregar de process.env caso existam no ambiente de build/runtime.
- * Caso contrário, substitua manualmente pelas chaves encontradas em:
- * Project Settings -> API -> Project URL / anon public key
+ * ATENÇÃO: Substitua as constantes abaixo pelos valores reais do seu painel Supabase:
+ * Settings -> API -> Project URL / anon public key
  */
-const SUPABASE_URL = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || 'https://seu-projeto.supabase.co';
-const SUPABASE_KEY = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || 'sua-chave-anon-public';
+const SUPABASE_URL = 'https://seu-projeto.supabase.co'; // <--- ALTERE AQUI
+const SUPABASE_KEY = 'sua-chave-anon-public';         // <--- ALTERE AQUI
+
+// Validação para evitar erros de rede antes da configuração
+export const isConfigured = !SUPABASE_URL.includes('seu-projeto') && SUPABASE_KEY !== 'sua-chave-anon-public';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /*
   =============================================================================
-  SCRIPT SQL PARA EXECUÇÃO (Copie e cole no 'SQL Editor' do Supabase)
+  SCRIPT SQL PARA O SUPABASE (Copie e execute no 'SQL Editor' do seu painel)
   =============================================================================
 
-  -- 1. Habilitar extensão para UUIDs
+  -- 1. Habilitar extensões necessárias
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
   -- 2. Tabela de Militares (Efetivo)
@@ -44,7 +46,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- 4. Tabela de Guarnições e Escalas
+  -- 4. Tabela de Guarnições (Escalas)
   CREATE TABLE IF NOT EXISTS garrisons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -57,17 +59,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- 5. Configurar Segurança (RLS) para Acesso Público (Ambiente de Teste)
+  -- 5. Segurança (RLS) - Permite acesso total para desenvolvimento
   ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Acesso Público Officers" ON officers FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Public Access" ON officers FOR ALL USING (true) WITH CHECK (true);
 
   ALTER TABLE platoons ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Acesso Público Platoons" ON platoons FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Public Access" ON platoons FOR ALL USING (true) WITH CHECK (true);
 
   ALTER TABLE garrisons ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Acesso Público Garrisons" ON garrisons FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Public Access" ON garrisons FOR ALL USING (true) WITH CHECK (true);
 
-  -- 6. Otimização de busca
-  CREATE INDEX IF NOT EXISTS idx_officers_registration ON officers(registration);
-  CREATE INDEX IF NOT EXISTS idx_garrisons_platoon ON garrisons(platoon_id);
+  -- 6. Índices de busca
+  CREATE INDEX IF NOT EXISTS idx_officers_reg ON officers(registration);
+  CREATE INDEX IF NOT EXISTS idx_garrisons_plat ON garrisons(platoon_id);
 */

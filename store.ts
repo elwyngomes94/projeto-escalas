@@ -1,6 +1,6 @@
 
-import { Officer, Platoon, Garrison, TeamConfig } from './types';
-import { supabase } from './supabase';
+import { Officer, Platoon, Garrison, TeamConfig, DutyType } from './types';
+import { supabase, isConfigured } from './supabase';
 
 interface StorageData {
   officers: Officer[];
@@ -9,43 +9,61 @@ interface StorageData {
 }
 
 export const loadData = async (): Promise<StorageData> => {
-  const { data: officersData } = await supabase.from('officers').select('*').order('rank');
-  const { data: platoonsData } = await supabase.from('platoons').select('*').order('name');
-  const { data: garrisonsData } = await supabase.from('garrisons').select('*').order('created_at');
+  if (!isConfigured) {
+    console.warn("Supabase não configurado. Verifique o arquivo supabase.ts");
+    return { officers: [], platoons: [], garrisons: [] };
+  }
 
-  const officers: Officer[] = (officersData || []).map((o: any) => ({
-    id: o.id,
-    fullName: o.full_name,
-    registration: o.registration,
-    rank: o.rank,
-    warName: o.war_name,
-    isAvailable: o.is_available,
-    unavailabilityReason: o.unavailability_reason,
-    customReason: o.custom_reason
-  }));
+  try {
+    const [offRes, platRes, garRes] = await Promise.all([
+      supabase.from('officers').select('*').order('rank'),
+      supabase.from('platoons').select('*').order('name'),
+      supabase.from('garrisons').select('*').order('created_at')
+    ]);
 
-  const platoons: Platoon[] = (platoonsData || []).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    city: p.city,
-    commanderId: p.commander_id
-  }));
+    if (offRes.error) throw offRes.error;
+    if (platRes.error) throw platRes.error;
+    if (garRes.error) throw garRes.error;
 
-  const garrisons: Garrison[] = (garrisonsData || []).map((g: any) => ({
-    id: g.id,
-    name: g.name,
-    platoonId: g.platoon_id,
-    teams: g.teams as TeamConfig,
-    dutyType: g.duty_type,
-    specificDates: g.specific_dates,
-    startTime: g.start_time,
-    endTime: g.end_time
-  }));
+    const officers: Officer[] = (offRes.data || []).map((o: any) => ({
+      id: o.id,
+      fullName: o.full_name,
+      registration: o.registration,
+      rank: o.rank,
+      warName: o.war_name,
+      isAvailable: o.is_available,
+      unavailabilityReason: o.unavailability_reason,
+      customReason: o.custom_reason
+    }));
 
-  return { officers, platoons, garrisons };
+    const platoons: Platoon[] = (platRes.data || []).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      city: p.city,
+      commanderId: p.commander_id
+    }));
+
+    const garrisons: Garrison[] = (garRes.data || []).map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      platoonId: g.platoon_id,
+      teams: g.teams as TeamConfig,
+      dutyType: g.duty_type as DutyType,
+      specificDates: g.specific_dates,
+      startTime: g.start_time,
+      endTime: g.end_time
+    }));
+
+    return { officers, platoons, garrisons };
+  } catch (error) {
+    console.error("Erro ao carregar dados do Supabase:", error);
+    return { officers: [], platoons: [], garrisons: [] };
+  }
 };
 
 export const upsertOfficer = async (officer: Officer) => {
+  if (!isConfigured) throw new Error("Supabase não configurado");
+  
   const payload: any = {
     full_name: officer.fullName,
     registration: officer.registration,
@@ -56,46 +74,46 @@ export const upsertOfficer = async (officer: Officer) => {
     custom_reason: officer.customReason || null
   };
 
-  // Se o ID for um UUID válido, incluímos no payload para atualização direta.
-  // Caso contrário, o Supabase usará a 'registration' (onConflict) para encontrar o registro.
   if (officer.id && officer.id.length > 30) {
     payload.id = officer.id;
   }
 
   const { data, error } = await supabase
     .from('officers')
-    .upsert(payload, { onConflict: 'registration' });
+    .upsert(payload, { onConflict: 'registration' })
+    .select();
 
   if (error) throw error;
   return data;
 };
 
 export const deleteOfficer = async (id: string) => {
+  if (!isConfigured) return;
   const { error } = await supabase.from('officers').delete().eq('id', id);
   if (error) throw error;
 };
 
 export const upsertPlatoon = async (platoon: Platoon) => {
+  if (!isConfigured) throw new Error("Supabase não configurado");
   const payload: any = {
     name: platoon.name,
     city: platoon.city,
     commander_id: platoon.commanderId || null
   };
+  if (platoon.id && platoon.id.length > 30) payload.id = platoon.id;
   
-  if (platoon.id && platoon.id.length > 30) {
-    payload.id = platoon.id;
-  }
-
   const { error } = await supabase.from('platoons').upsert(payload);
   if (error) throw error;
 };
 
 export const deletePlatoon = async (id: string) => {
+  if (!isConfigured) return;
   const { error } = await supabase.from('platoons').delete().eq('id', id);
   if (error) throw error;
 };
 
 export const upsertGarrison = async (garrison: Garrison) => {
+  if (!isConfigured) throw new Error("Supabase não configurado");
   const payload: any = {
     name: garrison.name,
     platoon_id: garrison.platoonId,
@@ -105,16 +123,14 @@ export const upsertGarrison = async (garrison: Garrison) => {
     start_time: garrison.startTime,
     end_time: garrison.endTime
   };
+  if (garrison.id && garrison.id.length > 30) payload.id = garrison.id;
   
-  if (garrison.id && garrison.id.length > 30) {
-    payload.id = garrison.id;
-  }
-
   const { error } = await supabase.from('garrisons').upsert(payload);
   if (error) throw error;
 };
 
 export const deleteGarrison = async (id: string) => {
+  if (!isConfigured) return;
   const { error } = await supabase.from('garrisons').delete().eq('id', id);
   if (error) throw error;
 };

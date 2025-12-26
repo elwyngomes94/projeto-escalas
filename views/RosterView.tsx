@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, Shield, Users, ArrowRight, Info, X, Layers, Check, AlertCircle, Search, Edit2, Copy, Clock } from 'lucide-react';
-import { loadData, saveData } from '../store';
+// Fix: Removed saveData and imported granular upsert and delete functions
+import { loadData, upsertGarrison, deleteGarrison } from '../store';
 import { Officer, Platoon, Garrison, DutyType, TeamConfig, TeamData } from '../types';
 
 type ActiveTeam = 'A' | 'B' | 'C' | 'D';
@@ -14,7 +15,12 @@ const initialTeams: TeamConfig = {
 };
 
 export const RosterView: React.FC = () => {
-  const [data, setData] = useState(loadData());
+  // Fix: Initialized state correctly since loadData is asynchronous
+  const [data, setData] = useState<{officers: Officer[], platoons: Platoon[], garrisons: Garrison[]}>({
+    officers: [],
+    platoons: [],
+    garrisons: []
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTeamTab, setActiveTeamTab] = useState<ActiveTeam>('A');
@@ -30,8 +36,36 @@ export const RosterView: React.FC = () => {
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('07:00');
 
+  // Fix: Wrapped data loading in an async function and handled property mapping from snake_case
+  const refreshData = async () => {
+    const result = await loadData();
+    const normalizedGarrisons = result.garrisons.map((g: any) => ({
+      ...g,
+      platoonId: g.platoon_id || g.platoonId,
+      dutyType: g.duty_type || g.dutyType,
+      specificDates: g.specific_dates || g.specificDates,
+      startTime: g.start_time || g.startTime,
+      endTime: g.end_time || g.endTime
+    }));
+    const normalizedOfficers = result.officers.map((o: any) => ({
+      ...o,
+      warName: o.war_name || o.warName,
+      isAvailable: o.is_available ?? o.isAvailable,
+      registration: o.registration
+    }));
+    const normalizedPlatoons = result.platoons.map((p: any) => ({
+        ...p,
+        commanderId: p.commander_id || p.commanderId
+    }));
+    setData({
+        officers: normalizedOfficers,
+        platoons: normalizedPlatoons,
+        garrisons: normalizedGarrisons
+    });
+  };
+
   useEffect(() => {
-    setData(loadData());
+    refreshData();
   }, []);
 
   const assignedOfficersMap = React.useMemo(() => {
@@ -45,7 +79,8 @@ export const RosterView: React.FC = () => {
     return map;
   }, [data.garrisons, editingId]);
 
-  const handleSaveGarrison = () => {
+  // Fix: Updated handleSaveGarrison to be asynchronous and use the upsertGarrison function
+  const handleSaveGarrison = async () => {
     if (!name || !platoonId) {
       alert('Preencha Nome e Pelotão.');
       return;
@@ -64,7 +99,6 @@ export const RosterView: React.FC = () => {
       }
     }
 
-    const currentData = loadData();
     const newGarrison: Garrison = {
       id: editingId || Date.now().toString(),
       name,
@@ -76,17 +110,13 @@ export const RosterView: React.FC = () => {
       endTime
     };
 
-    let updatedGarrisons;
-    if (editingId) {
-      updatedGarrisons = currentData.garrisons.map(g => g.id === editingId ? newGarrison : g);
-    } else {
-      updatedGarrisons = [...currentData.garrisons, newGarrison];
+    try {
+      await upsertGarrison(newGarrison);
+      await refreshData();
+      closeModal();
+    } catch (e: any) {
+      alert('Erro ao salvar escala: ' + e.message);
     }
-
-    const newData = { ...currentData, garrisons: updatedGarrisons };
-    saveData(newData);
-    setData(newData);
-    closeModal();
   };
 
   const handleAddDate = () => {
@@ -126,13 +156,15 @@ export const RosterView: React.FC = () => {
     setEndTime('07:00');
   };
 
-  const handleDelete = (id: string) => {
+  // Fix: Updated handleDelete to be asynchronous and use the deleteGarrison function
+  const handleDelete = async (id: string) => {
     if (confirm('Excluir esta escala completa?')) {
-      const currentData = loadData();
-      const updated = currentData.garrisons.filter(g => g.id !== id);
-      const newData = { ...currentData, garrisons: updated };
-      saveData(newData);
-      setData(newData);
+      try {
+        await deleteGarrison(id);
+        await refreshData();
+      } catch (e: any) {
+        alert('Erro ao excluir: ' + e.message);
+      }
     }
   };
 

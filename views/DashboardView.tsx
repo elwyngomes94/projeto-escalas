@@ -17,14 +17,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     unavailable: 0
   });
 
+  // Fix: Correctly handle the asynchronous loadData call and mapping of status properties
   useEffect(() => {
-    const data = loadData();
-    setStats({
-      officers: data.officers.length,
-      platoons: data.platoons.length,
-      garrisons: data.garrisons.length,
-      unavailable: data.officers.filter(o => !o.isAvailable).length
-    });
+    const fetchStats = async () => {
+      const data = await loadData();
+      setStats({
+        officers: data.officers.length,
+        platoons: data.platoons.length,
+        garrisons: data.garrisons.length,
+        unavailable: data.officers.filter((o: any) => !(o.is_available ?? o.isAvailable)).length
+      });
+    };
+    fetchStats();
   }, []);
 
   const statCards = [

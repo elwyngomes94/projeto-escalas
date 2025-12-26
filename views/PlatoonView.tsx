@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, MapPin, Shield, User } from 'lucide-react';
-import { loadData, saveData } from '../store';
+// Fix: Removed saveData and imported granular upsert and delete functions
+import { loadData, upsertPlatoon, deletePlatoon } from '../store';
 import { Platoon, Officer } from '../types';
 
 export const PlatoonView: React.FC = () => {
   const [platoons, setPlatoons] = useState<Platoon[]>([]);
   const [officers, setOfficers] = useState<Officer[]>([]);
+  const [allOfficers, setAllOfficers] = useState<Officer[]>([]); // Added for commander name lookup
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -15,19 +17,38 @@ export const PlatoonView: React.FC = () => {
   const [city, setCity] = useState('');
   const [commanderId, setCommanderId] = useState('');
 
+  // Fix: Wrapped data loading in an async function inside useEffect to handle Promise
+  const refreshData = async () => {
+    const data = await loadData();
+    // Normalizing properties from snake_case if necessary
+    const normalizedPlatoons = data.platoons.map((p: any) => ({
+      ...p,
+      commanderId: p.commander_id || p.commanderId
+    }));
+    const normalizedOfficers = data.officers.map((o: any) => ({
+      ...o,
+      rank: o.rank,
+      warName: o.war_name || o.warName,
+      isAvailable: o.is_available ?? o.isAvailable,
+      registration: o.registration
+    }));
+    
+    setPlatoons(normalizedPlatoons);
+    setAllOfficers(normalizedOfficers);
+    setOfficers(normalizedOfficers.filter(o => o.isAvailable));
+  };
+
   useEffect(() => {
-    const data = loadData();
-    setPlatoons(data.platoons);
-    setOfficers(data.officers.filter(o => o.isAvailable));
+    refreshData();
   }, []);
 
-  const handleSave = () => {
+  // Fix: handleSave is now async and uses upsertPlatoon
+  const handleSave = async () => {
     if (!name || !city || !commanderId) {
       alert('Preencha todos os campos obrigatórios.');
       return;
     }
 
-    const data = loadData();
     const newPlatoon: Platoon = {
       id: editingId || Date.now().toString(),
       name,
@@ -35,35 +56,25 @@ export const PlatoonView: React.FC = () => {
       commanderId
     };
 
-    let updated;
-    if (editingId) {
-      updated = data.platoons.map(p => p.id === editingId ? newPlatoon : p);
-    } else {
-      updated = [...data.platoons, newPlatoon];
+    try {
+      await upsertPlatoon(newPlatoon);
+      await refreshData();
+      closeModal();
+    } catch (e: any) {
+      alert('Erro ao salvar: ' + e.message);
     }
-
-    const newData = { ...data, platoons: updated };
-    saveData(newData);
-    setPlatoons(updated);
-    closeModal();
   };
 
-  const handleDelete = (id: string) => {
+  // Fix: handleDelete is now async and uses deletePlatoon
+  const handleDelete = async (id: string) => {
     if (confirm('⚠ ATENÇÃO: Deseja realmente excluir este Pelotão?\n\nTodas as escalas (guarnições) vinculadas a este pelotão também serão removidas permanentemente.')) {
-      const data = loadData();
-      
-      const updatedPlatoons = data.platoons.filter(p => p.id !== id);
-      const updatedGarrisons = data.garrisons.filter(g => g.platoonId !== id);
-      
-      const newData = { 
-        ...data, 
-        platoons: updatedPlatoons, 
-        garrisons: updatedGarrisons 
-      };
-      
-      saveData(newData);
-      setPlatoons(updatedPlatoons);
-      alert('Pelotão e escalas associadas removidos com sucesso.');
+      try {
+        await deletePlatoon(id);
+        await refreshData();
+        alert('Pelotão e escalas associadas removidos com sucesso.');
+      } catch (e: any) {
+        alert('Erro ao excluir: ' + e.message);
+      }
     }
   };
 
@@ -87,9 +98,9 @@ export const PlatoonView: React.FC = () => {
     setEditingId(null);
   };
 
+  // Fix: Updated to look up commander name from state instead of re-loading data synchronously
   const getCommanderName = (id: string) => {
-    const data = loadData();
-    const officer = data.officers.find(o => o.id === id);
+    const officer = allOfficers.find(o => o.id === id);
     return officer ? `${officer.rank} ${officer.warName}` : 'Não definido';
   };
 

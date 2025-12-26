@@ -1,17 +1,28 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Printer, FileText, Copy, Check, Download, Share2, MessageCircle } from 'lucide-react';
+import { Printer, FileText, Copy, Check, Download, Share2, MessageCircle, Loader2 } from 'lucide-react';
 import { loadData } from '../store';
 import { Garrison, DutyType, Platoon, TeamData, Officer } from '../types';
 
 export const ReportView: React.FC = () => {
-  const [data, setData] = useState(loadData());
+  const [data, setData] = useState<{officers: Officer[], platoons: Platoon[], garrisons: Garrison[]}>({
+    officers: [],
+    platoons: [],
+    garrisons: []
+  });
+  const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
   const [copied, setCopied] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setData(loadData());
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await loadData();
+      setData(result);
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   const getOfficers = (ids: string[]) => {
@@ -137,6 +148,15 @@ export const ReportView: React.FC = () => {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <Loader2 className="w-10 h-10 animate-spin mb-4" />
+        <p className="font-bold">Processando relatórios...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm no-print flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
@@ -177,12 +197,10 @@ export const ReportView: React.FC = () => {
           {platoonsWithGarrisons.map((platoon) => (
             <div key={platoon.id} className="a4-page font-sans text-slate-900 relative overflow-hidden">
               
-              {/* Marca D'água mais sutil */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none select-none rotate-[-45deg] z-0">
                 <h1 className="text-[120px] font-black uppercase whitespace-nowrap">POLÍCIA MILITAR</h1>
               </div>
 
-              {/* Cabeçalho Institucional */}
               <div className="text-center space-y-0.5 mb-10 relative z-10">
                 <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-slate-500">Estado de Pernambuco</p>
                 <p className="text-[14px] font-medium uppercase text-slate-900">Secretaria de Defesa Social</p>
@@ -259,7 +277,6 @@ export const ReportView: React.FC = () => {
                 </div>
               ))}
 
-              {/* Rodapé de Assinaturas no A4 */}
               <div className="mt-20 flex flex-col items-center text-[11px] font-bold uppercase relative z-10">
                 <div className="w-full grid grid-cols-2 gap-16">
                   <div className="text-center">
@@ -281,7 +298,6 @@ export const ReportView: React.FC = () => {
             </div>
           ))}
 
-          {/* Quadro de Indisponíveis ajustado para A4 */}
           <div className="a4-page font-sans text-slate-900 mb-12 relative z-10">
             <div className="border-b-2 border-slate-900 pb-3 mb-8 text-center">
               <h2 className="text-[18px] font-bold uppercase tracking-tight text-slate-900">Efetivo em Afastamento</h2>

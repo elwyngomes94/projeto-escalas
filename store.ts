@@ -1,5 +1,5 @@
 
-import { Officer, Platoon, Garrison } from './types';
+import { Officer, Platoon, Garrison, TeamConfig } from './types';
 import { supabase } from './supabase';
 
 interface StorageData {
@@ -9,21 +9,45 @@ interface StorageData {
 }
 
 export const loadData = async (): Promise<StorageData> => {
-  const { data: officers } = await supabase.from('officers').select('*').order('rank');
-  const { data: platoons } = await supabase.from('platoons').select('*').order('name');
-  const { data: garrisons } = await supabase.from('garrisons').select('*').order('created_at');
+  const { data: officersData } = await supabase.from('officers').select('*').order('rank');
+  const { data: platoonsData } = await supabase.from('platoons').select('*').order('name');
+  const { data: garrisonsData } = await supabase.from('garrisons').select('*').order('created_at');
 
-  return {
-    officers: officers || [],
-    platoons: platoons || [],
-    garrisons: garrisons || []
-  };
+  const officers: Officer[] = (officersData || []).map((o: any) => ({
+    id: o.id,
+    fullName: o.full_name,
+    registration: o.registration,
+    rank: o.rank,
+    warName: o.war_name,
+    isAvailable: o.is_available,
+    unavailabilityReason: o.unavailability_reason,
+    customReason: o.custom_reason
+  }));
+
+  const platoons: Platoon[] = (platoonsData || []).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    city: p.city,
+    commanderId: p.commander_id
+  }));
+
+  const garrisons: Garrison[] = (garrisonsData || []).map((g: any) => ({
+    id: g.id,
+    name: g.name,
+    platoonId: g.platoon_id,
+    teams: g.teams as TeamConfig,
+    dutyType: g.duty_type,
+    specificDates: g.specific_dates,
+    startTime: g.start_time,
+    endTime: g.end_time
+  }));
+
+  return { officers, platoons, garrisons };
 };
 
-// Funções granulares para melhor performance
 export const upsertOfficer = async (officer: Officer) => {
   const { data, error } = await supabase.from('officers').upsert({
-    id: officer.id.length > 20 ? officer.id : undefined, // Garante UUID ou deixa gerar
+    id: officer.id.length > 20 ? officer.id : undefined,
     full_name: officer.fullName,
     registration: officer.registration,
     rank: officer.rank,

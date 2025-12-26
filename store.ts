@@ -56,9 +56,9 @@ export const upsertOfficer = async (officer: Officer) => {
     custom_reason: officer.customReason || null
   };
 
-  // Se o ID não existir ou for curto demais (não for um UUID real), 
-  // deixamos o Supabase criar um novo ou encontrar pela matrícula via onConflict
-  if (officer.id && officer.id.length > 20) {
+  // Se o ID for um UUID válido, incluímos no payload para atualização direta.
+  // Caso contrário, o Supabase usará a 'registration' (onConflict) para encontrar o registro.
+  if (officer.id && officer.id.length > 30) {
     payload.id = officer.id;
   }
 
@@ -82,7 +82,7 @@ export const upsertPlatoon = async (platoon: Platoon) => {
     commander_id: platoon.commanderId || null
   };
   
-  if (platoon.id && platoon.id.length > 20) {
+  if (platoon.id && platoon.id.length > 30) {
     payload.id = platoon.id;
   }
 
@@ -106,7 +106,7 @@ export const upsertGarrison = async (garrison: Garrison) => {
     end_time: garrison.endTime
   };
   
-  if (garrison.id && garrison.id.length > 20) {
+  if (garrison.id && garrison.id.length > 30) {
     payload.id = garrison.id;
   }
 

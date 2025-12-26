@@ -246,12 +246,6 @@ export const OfficerView: React.FC = () => {
   const handleProcessImport = async () => {
     if (importPreview.length === 0) return;
     
-    const isMock = (supabase as any).supabaseUrl?.includes('seu-projeto');
-    if (isMock) {
-      alert("⚠️ ERRO: Configure o Supabase no arquivo 'supabase.ts' e execute o script SQL para criar as tabelas antes de importar.");
-      return;
-    }
-
     setIsImporting(true);
     let successCount = 0;
     let failCount = 0;
@@ -279,9 +273,9 @@ export const OfficerView: React.FC = () => {
     setImportText('');
     
     if (failCount > 0) {
-      alert(`Importação concluída:\n✅ ${successCount} Sucessos\n❌ ${failCount} Falhas\n\nCertifique-se de que rodou o script SQL no Supabase para adicionar a restrição UNIQUE na coluna registration.`);
+      alert(`Sincronização concluída:\n✅ ${successCount} Sucessos\n❌ ${failCount} Falhas\n\nCertifique-se de que a tabela 'officers' possui a restrição UNIQUE na coluna 'registration'.`);
     } else {
-      alert(`🎉 ${successCount} militares sincronizados com sucesso!`);
+      alert(`🎉 ${successCount} militares sincronizados com o banco de dados!`);
     }
     
     refreshData();
@@ -363,13 +357,13 @@ export const OfficerView: React.FC = () => {
             onClick={() => setIsImportModalOpen(true)}
             className="flex-1 md:flex-none flex items-center justify-center bg-slate-800 text-white px-4 py-3 rounded-xl hover:bg-slate-900 transition-colors shadow-sm font-bold text-sm"
           >
-            <Database className="w-4 h-4 mr-2" /> Importar Efetivo
+            <Database className="w-4 h-4 mr-2" /> Sincronizar Lista
           </button>
           <button
             onClick={() => openModal()}
             className="flex-1 md:flex-none flex items-center justify-center bg-amber-600 text-white px-4 py-3 rounded-xl hover:bg-amber-700 transition-colors shadow-sm font-bold text-sm"
           >
-            <Plus className="w-4 h-4 mr-2" /> Cadastrar Novo
+            <Plus className="w-4 h-4 mr-2" /> Novo Cadastro
           </button>
         </div>
       </div>
@@ -377,7 +371,7 @@ export const OfficerView: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Loader2 className="w-10 h-10 animate-spin mb-4" />
-          <p className="font-bold">Sincronizando efetivo com o banco...</p>
+          <p className="font-bold uppercase text-xs tracking-widest">Acessando banco de dados...</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -415,6 +409,7 @@ export const OfficerView: React.FC = () => {
         </div>
       )}
 
+      {/* Modal Importação Lote */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -471,41 +466,43 @@ export const OfficerView: React.FC = () => {
               <button
                 disabled={importPreview.length === 0 || isImporting}
                 onClick={handleProcessImport}
-                className="px-12 py-4 bg-slate-950 text-amber-500 rounded-2xl font-black shadow-2xl active:scale-95 transition-transform disabled:opacity-50"
+                className="px-12 py-4 bg-slate-950 text-amber-500 rounded-2xl font-black shadow-2xl active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center"
               >
-                {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sincronizar no Banco'}
+                {isImporting ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Check className="w-5 h-5 mr-2" />}
+                {isImporting ? 'SINCRONIZANDO...' : 'Sincronizar no Banco'}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Modal Individual */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-t-2xl md:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Editar Militar' : 'Novo Militar'}</h2>
+              <h2 className="text-xl font-bold text-slate-900 uppercase tracking-tighter">{editingId ? 'Editar Militar' : 'Novo Militar'}</h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:bg-gray-200 rounded-full"><X className="w-6 h-6" /></button>
             </div>
             <div className="p-8 overflow-y-auto flex-1 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome Completo *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Matrícula *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={registration} onChange={(e) => setRegistration(e.target.value.replace(/[^\d]/g, ''))} />
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500" value={registration} onChange={(e) => setRegistration(e.target.value.replace(/[^\d]/g, ''))} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Posto / Graduação *</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={rank} onChange={(e) => setRank(e.target.value as Rank)}>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500" value={rank} onChange={(e) => setRank(e.target.value as Rank)}>
                     {Object.values(Rank).map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome de Guerra *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={warName} onChange={(e) => setWarName(e.target.value)} />
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500" value={warName} onChange={(e) => setWarName(e.target.value)} />
                 </div>
               </div>
               <div className="space-y-4 pt-6 border-t border-gray-100">
@@ -524,7 +521,7 @@ export const OfficerView: React.FC = () => {
               </div>
             </div>
             <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50 shrink-0">
-              <button onClick={closeModal} className="flex-1 px-6 py-4 border border-gray-200 rounded-2xl bg-white">Descartar</button>
+              <button onClick={closeModal} className="flex-1 px-6 py-4 border border-gray-200 rounded-2xl bg-white hover:bg-gray-100 transition-colors">Descartar</button>
               <button onClick={handleSave} className="flex-[2] px-8 py-4 bg-slate-900 text-amber-500 rounded-2xl font-black shadow-xl active:scale-95 transition-all">SALVAR REGISTRO</button>
             </div>
           </div>

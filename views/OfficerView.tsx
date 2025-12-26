@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Search, UserCheck, UserX, AlertCircle, FileUp, X, 
 import { loadData, upsertOfficer, deleteOfficer } from '../store';
 import { Officer, Rank, UnavailabilityReason } from '../types';
 
+// Lista oficial fornecida pelo usuário para importação em lote
 const OFFICIAL_LIST_RAW = `CRISTOVÃO	1021230	TEN.CEL	CRISTOVÃO ISAAC RODRIGUES MAGALHÃES
 EDVAN	9807721	CAP	EDVAN ARRUDA FERRAZ
 MYKE	119793 2	2º TEN	JOSEPH MYKE DA SILVA
@@ -166,7 +167,7 @@ export const OfficerView: React.FC = () => {
     if (cleanRank.includes('3º SGT') || cleanRank.includes('3ºSGT')) return Rank.SGT3;
     if (cleanRank.includes('CB')) return Rank.CB;
     if (cleanRank.includes('SD')) return Rank.SD;
-    return Rank.SD; // Default para SD em caso de inconsistência
+    return Rank.SD;
   };
 
   const handleImportOfficialList = async () => {
@@ -179,20 +180,19 @@ export const OfficerView: React.FC = () => {
 
     for (const line of lines) {
       const parts = line.split('\t').map(s => s?.trim());
-      // A estrutura esperada é: NOME_GUERRA \t MATRICULA \t POSTO/GRAD \t NOME_COMPLETO
+      // Estrutura: NOME_GUERRA \t MATRICULA \t POSTO/GRAD \t NOME_COMPLETO
       const warNamePart = parts[0];
       const regPart = parts[1];
       const rankPart = parts[2];
       const fullNamePart = parts[3];
 
       if (!regPart || !fullNamePart) {
-        console.warn('Linha inválida pulada:', line);
         continue;
       }
 
       try {
         const officer: any = {
-          id: '', // Supabase gera UUID se vazio
+          id: '', // UUID gerado pelo Supabase
           fullName: fullNamePart,
           registration: regPart.replace(/\s+/g, ''),
           rank: mapRank(rankPart),

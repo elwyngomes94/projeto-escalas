@@ -52,12 +52,11 @@ export const upsertOfficer = async (officer: Officer) => {
     rank: officer.rank,
     war_name: officer.warName,
     is_available: officer.isAvailable,
-    unavailability_reason: officer.unavailabilityReason,
-    custom_reason: officer.customReason
+    unavailability_reason: officer.unavailabilityReason || null,
+    custom_reason: officer.customReason || null
   };
 
-  // Importante: Se for uma importação, o ID costuma ser vazio. 
-  // O Supabase usará a matrícula (onConflict) para achar o registro se o ID não for enviado.
+  // Garante que o ID só é enviado se for um UUID válido e não uma string vazia
   if (officer.id && officer.id.length > 20) {
     payload.id = officer.id;
   }

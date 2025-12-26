@@ -5,7 +5,6 @@ import { loadData, upsertOfficer, deleteOfficer } from '../store';
 import { Officer, Rank, UnavailabilityReason } from '../types';
 import { supabase } from '../supabase';
 
-// LISTA OFICIAL FORNECIDA PELO USUÁRIO
 const OFFICIAL_BASE_LIST = `CRISTOVÃO	1021230	TEN.CEL	CRISTOVÃO ISAAC RODRIGUES MAGALHÃES
 EDVAN	9807721	CAP	EDVAN ARRUDA FERRAZ
 MYKE	1197932	2º TEN	JOSEPH MYKE DA SILVA
@@ -136,11 +135,9 @@ export const OfficerView: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Import State
   const [importText, setImportText] = useState('');
   const [importPreview, setImportPreview] = useState<any[]>([]);
 
-  // Form states
   const [fullName, setFullName] = useState('');
   const [registration, setRegistration] = useState('');
   const [rank, setRank] = useState<Rank>(Rank.SD);
@@ -170,7 +167,6 @@ export const OfficerView: React.FC = () => {
     if (s.includes('TEN.CEL') || s.includes('TC')) return Rank.TC;
     if (s.includes('MAJ')) return Rank.MAJ;
     if (s.includes('CAP')) return Rank.CAP;
-    // Correção: DEZ = TEN (erro comum em OCR)
     if (s.includes('TEN') || s.includes('DEZ')) {
       if (s.includes('1º')) return Rank.TEN1;
       if (s.includes('2º')) return Rank.TEN2;
@@ -193,26 +189,20 @@ export const OfficerView: React.FC = () => {
     const preview: any[] = [];
 
     lines.forEach(line => {
-      // 1. Tentar separar por Tab (Padrão Excel)
       let parts = line.split('\t').map(p => p.trim()).filter(Boolean);
       
-      // 2. Tentar separar por múltiplos espaços se falhar tab
       if (parts.length < 3) {
         const rawTokens = line.split(/\s+/).map(t => t.trim()).filter(Boolean);
         if (rawTokens.length >= 4) {
           const war = rawTokens[0];
-          
-          // Limpeza de matrícula: Captura o segundo token e remove tudo que não for dígito
           let reg = rawTokens[1].replace(/[^\d]/g, '');
           let postIndex = 2;
           
-          // Se o token seguinte à matrícula também for numérico e curto, provavelmente é o dígito final
           if (rawTokens[2] && /^\d+$/.test(rawTokens[2]) && rawTokens[2].length <= 2) {
              reg = reg + rawTokens[2];
              postIndex = 3;
           }
           
-          // Identifica o Rank (ex: "2º SGT" consome 2 tokens)
           let rankToken = rawTokens[postIndex];
           let nameStartIdx = postIndex + 1;
           
@@ -227,10 +217,8 @@ export const OfficerView: React.FC = () => {
       }
 
       if (parts.length < 3) return;
-      if (parts[0].toUpperCase().includes('NOME DE GUERRA')) return;
-
       const warNamePart = parts[0];
-      const regPart = parts[1]?.replace(/[^\d]/g, ''); // Garante que a matrícula seja apenas números
+      const regPart = parts[1]?.replace(/[^\d]/g, '');
       const rankPart = parts[2];
       const fullNamePart = parts[3] || parts[0];
 
@@ -260,7 +248,7 @@ export const OfficerView: React.FC = () => {
     
     const isMock = (supabase as any).supabaseUrl?.includes('seu-projeto');
     if (isMock) {
-      alert("⚠️ ERRO: O sistema está em modo demonstração. Para salvar permanentemente, configure o Supabase no arquivo 'supabase.ts' e rode o script SQL fornecido nos comentários.");
+      alert("⚠️ ERRO: Configure o Supabase no arquivo 'supabase.ts' e execute o script SQL para criar as tabelas antes de importar.");
       return;
     }
 
@@ -268,7 +256,6 @@ export const OfficerView: React.FC = () => {
     let successCount = 0;
     let failCount = 0;
 
-    // Processamento sequencial para evitar sobrecarga e capturar erros por item
     for (const item of importPreview) {
       try {
         await upsertOfficer({
@@ -292,9 +279,9 @@ export const OfficerView: React.FC = () => {
     setImportText('');
     
     if (failCount > 0) {
-      alert(`Importação concluída com ressalvas:\n✅ ${successCount} Sucessos\n❌ ${failCount} Falhas\n\n(Verifique se a restrição UNIQUE foi adicionada na tabela 'officers' no Supabase)`);
+      alert(`Importação concluída:\n✅ ${successCount} Sucessos\n❌ ${failCount} Falhas\n\nCertifique-se de que rodou o script SQL no Supabase para adicionar a restrição UNIQUE na coluna registration.`);
     } else {
-      alert(`🎉 ${successCount} militares importados ou atualizados com sucesso!`);
+      alert(`🎉 ${successCount} militares sincronizados com sucesso!`);
     }
     
     refreshData();
@@ -390,7 +377,7 @@ export const OfficerView: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Loader2 className="w-10 h-10 animate-spin mb-4" />
-          <p className="font-bold">Sincronizando efetivo...</p>
+          <p className="font-bold">Sincronizando efetivo com o banco...</p>
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -422,18 +409,12 @@ export const OfficerView: React.FC = () => {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-20 text-center text-gray-400 italic">Nenhum militar encontrado.</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* Modal Importação Lote */}
       {isImportModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -448,8 +429,8 @@ export const OfficerView: React.FC = () => {
               <div className="lg:w-1/2 p-6 flex flex-col space-y-4 border-r border-gray-100">
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-black text-gray-500 uppercase">Cole sua lista aqui</label>
-                  <button onClick={loadOfficialList} className="text-[10px] bg-amber-100 text-amber-900 px-4 py-2 rounded-full font-black flex items-center hover:bg-amber-200 transition-colors shadow-sm">
-                    <Sparkles className="w-3 h-3 mr-2" /> Carregar 121 Policiais (Base Original)
+                  <button onClick={loadOfficialList} className="text-[10px] bg-amber-100 text-amber-900 px-4 py-2 rounded-full font-black flex items-center hover:bg-amber-200 shadow-sm">
+                    <Sparkles className="w-3 h-3 mr-2" /> Carregar 121 Policiais
                   </button>
                 </div>
                 <textarea
@@ -482,78 +463,60 @@ export const OfficerView: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  {importPreview.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-4">
-                      <ClipboardPaste className="w-12 h-12 opacity-10" />
-                      <p className="italic text-xs text-center px-10">Cole o texto ou clique no botão acima para pré-visualizar o efetivo aqui.</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
             <div className="p-6 bg-white border-t border-gray-100 flex justify-end gap-3 shrink-0">
-              <button onClick={() => setIsImportModalOpen(false)} className="px-6 py-3 font-bold text-gray-500 hover:text-gray-800">Cancelar</button>
+              <button onClick={() => setIsImportModalOpen(false)} className="px-6 py-3 font-bold text-gray-500">Cancelar</button>
               <button
                 disabled={importPreview.length === 0 || isImporting}
                 onClick={handleProcessImport}
-                className="px-12 py-4 bg-slate-950 text-amber-500 rounded-2xl font-black shadow-2xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed group"
+                className="px-12 py-4 bg-slate-950 text-amber-500 rounded-2xl font-black shadow-2xl active:scale-95 transition-transform disabled:opacity-50"
               >
-                {isImporting ? (
-                   <span className="flex items-center"><Loader2 className="w-5 h-5 mr-3 animate-spin" /> SALVANDO NO BANCO...</span>
-                ) : (
-                   <span className="flex items-center uppercase tracking-widest"><Check className="w-5 h-5 mr-3" /> Processar e Salvar Agora</span>
-                )}
+                {isImporting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sincronizar no Banco'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Cadastro/Edição Individual */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-t-2xl md:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col h-[90vh] md:h-auto md:max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-              <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Editar Dados do Militar' : 'Cadastro de Novo Militar'}</h2>
+              <h2 className="text-xl font-bold text-slate-900">{editingId ? 'Editar Militar' : 'Novo Militar'}</h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:bg-gray-200 rounded-full"><X className="w-6 h-6" /></button>
             </div>
             <div className="p-8 overflow-y-auto flex-1 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome Completo *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-medium" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Matrícula (Apenas Números) *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold" value={registration} onChange={(e) => setRegistration(e.target.value.replace(/[^\d]/g, ''))} />
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Matrícula *</label>
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={registration} onChange={(e) => setRegistration(e.target.value.replace(/[^\d]/g, ''))} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Posto / Graduação *</label>
-                  <select className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-bold appearance-none" value={rank} onChange={(e) => setRank(e.target.value as Rank)}>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={rank} onChange={(e) => setRank(e.target.value as Rank)}>
                     {Object.values(Rank).map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nome de Guerra *</label>
-                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-black uppercase" value={warName} onChange={(e) => setWarName(e.target.value)} />
+                  <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none" value={warName} onChange={(e) => setWarName(e.target.value)} />
                 </div>
               </div>
-              
               <div className="space-y-4 pt-6 border-t border-gray-100">
                 <div className={`flex items-center space-x-4 p-4 rounded-2xl transition-colors ${isAvailable ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <div className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                  </div>
-                  <label className={`text-sm font-black uppercase tracking-tight ${isAvailable ? 'text-green-700' : 'text-red-700'}`}>
-                    {isAvailable ? 'Militar Disponível para Escala' : 'Militar Afastado da Escala'}
-                  </label>
+                  <input type="checkbox" className="w-6 h-6 text-green-600 rounded" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
+                  <label className="text-sm font-black uppercase tracking-tight">Disponível para Escala</label>
                 </div>
-                
                 {!isAvailable && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <label className="text-[10px] font-black text-slate-400 uppercase mb-2 block">Causa do Afastamento</label>
-                    <select className="w-full px-4 py-3 bg-white border-2 border-red-100 rounded-xl outline-none focus:ring-2 focus:ring-red-500 font-bold" value={unavailabilityReason} onChange={(e) => setUnavailabilityReason(e.target.value as UnavailabilityReason)}>
+                    <select className="w-full px-4 py-3 bg-white border border-red-100 rounded-xl outline-none" value={unavailabilityReason} onChange={(e) => setUnavailabilityReason(e.target.value as UnavailabilityReason)}>
                       {Object.values(UnavailabilityReason).filter(r => r !== UnavailabilityReason.NONE).map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
@@ -561,8 +524,8 @@ export const OfficerView: React.FC = () => {
               </div>
             </div>
             <div className="p-6 border-t border-gray-100 flex gap-4 bg-gray-50 shrink-0">
-              <button onClick={closeModal} className="flex-1 px-6 py-4 border border-gray-200 rounded-2xl font-bold text-gray-500 bg-white hover:bg-gray-100 transition-colors">Descartar</button>
-              <button onClick={handleSave} className="flex-[2] px-8 py-4 bg-slate-900 text-amber-500 rounded-2xl font-black shadow-xl hover:bg-slate-800 active:scale-95 transition-all">SALVAR REGISTRO</button>
+              <button onClick={closeModal} className="flex-1 px-6 py-4 border border-gray-200 rounded-2xl bg-white">Descartar</button>
+              <button onClick={handleSave} className="flex-[2] px-8 py-4 bg-slate-900 text-amber-500 rounded-2xl font-black shadow-xl active:scale-95 transition-all">SALVAR REGISTRO</button>
             </div>
           </div>
         </div>

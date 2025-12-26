@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Printer, FileText, Copy, Check, Download } from 'lucide-react';
+import { Printer, FileText, Copy, Check, Download, Share2, MessageCircle } from 'lucide-react';
 import { loadData } from '../store';
-import { Garrison, DutyType, Platoon, TeamData } from '../types';
+import { Garrison, DutyType, Platoon, TeamData, Officer } from '../types';
 
 export const ReportView: React.FC = () => {
   const [data, setData] = useState(loadData());
@@ -87,9 +87,59 @@ export const ReportView: React.FC = () => {
     return 'PATRULHEIRO';
   };
 
+  const generateWhatsAppText = () => {
+    let text = `*ESCALA DE SERVIÇO OPERACIONAL*\n`;
+    text += `*MÊS: ${getFormattedMonth()} / ${getYear()}*\n\n`;
+
+    platoonsWithGarrisons.forEach(platoon => {
+      text += `*--- ${platoon.name} ---*\n`;
+      platoon.garrisons.forEach(garrison => {
+        text += `\n*VTR/GUARNIÇÃO: ${garrison.name}*\n`;
+        text += `Horário: ${garrison.startTime} às ${garrison.endTime}\n`;
+        
+        (['A', 'B', 'C', 'D'] as const).forEach(teamKey => {
+          const teamOfficers = getOfficers(garrison.teams[teamKey].officerIds);
+          const days = getTeamDays(garrison, teamKey, selectedMonth);
+          
+          if (teamOfficers.length > 0 && days.length > 0) {
+            text += `\n*EQUIPE ${teamKey}* (Dias: ${days.join(', ')})\n`;
+            teamOfficers.forEach((off, idx) => {
+              text += `${idx + 1}. ${off.rank} ${off.warName} (*${off.registration}*) - ${getRoleLabel(idx)}\n`;
+            });
+          }
+        });
+      });
+      text += `\n`;
+    });
+
+    const unavailable = getUnavailableOfficers();
+    if (unavailable.length > 0) {
+      text += `*AFASTAMENTOS / INDISPONIBILIDADES:*\n`;
+      unavailable.forEach(off => {
+        text += `- ${off.rank} ${off.warName} (*${off.registration}*): ${off.unavailabilityReason}\n`;
+      });
+    }
+
+    return text;
+  };
+
+  const shareToWhatsApp = () => {
+    const text = generateWhatsAppText();
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+  };
+
+  const copyToClipboard = () => {
+    const text = generateWhatsAppText();
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div className="space-y-6 pb-12">
-      <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm no-print flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
+      <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm no-print flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
         <div className="flex-1 space-y-1">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mês de Referência</label>
           <input
@@ -99,12 +149,25 @@ export const ReportView: React.FC = () => {
             onChange={(e) => setSelectedMonth(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 shrink-0">
             <button 
               onClick={() => window.print()} 
-              className="flex-1 sm:flex-none px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs md:text-sm shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+              className="px-4 py-3 bg-slate-900 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center active:scale-95 transition-transform"
             >
-              <Download className="w-5 h-5 mr-2" /> PDF / RELATÓRIO
+              <Download className="w-5 h-5 mr-2" /> PDF / IMPRIMIR
+            </button>
+            <button 
+              onClick={shareToWhatsApp} 
+              className="px-4 py-3 bg-green-600 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <MessageCircle className="w-5 h-5 mr-2" /> WHATSAPP
+            </button>
+            <button 
+              onClick={copyToClipboard} 
+              className="px-4 py-3 bg-blue-600 text-white rounded-xl font-black text-xs shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+            >
+              {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
+              {copied ? 'COPIADO' : 'COPIAR TEXTO'}
             </button>
         </div>
       </div>
@@ -112,40 +175,40 @@ export const ReportView: React.FC = () => {
       <div ref={reportRef} className="bg-gray-100 py-4 no-print-space overflow-x-auto rounded-xl md:rounded-none">
         <div className="inline-block min-w-full md:block">
           {platoonsWithGarrisons.map((platoon) => (
-            <div key={platoon.id} className="bg-white p-6 md:p-14 print:p-8 min-h-[1100px] text-slate-900 font-sans mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none print:break-after-page border border-slate-300 print:border-none relative overflow-hidden mb-10 md:mb-12">
+            <div key={platoon.id} className="a4-page font-sans text-slate-900 relative overflow-hidden">
               
-              {/* Watermark */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none select-none rotate-[-45deg] z-0">
-                <h1 className="text-[141px] font-black uppercase whitespace-nowrap">POLÍCIA MILITAR</h1>
+              {/* Marca D'água mais sutil */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.015] pointer-events-none select-none rotate-[-45deg] z-0">
+                <h1 className="text-[120px] font-black uppercase whitespace-nowrap">POLÍCIA MILITAR</h1>
               </div>
 
-              {/* Cabeçalho Profissional */}
-              <div className="text-center space-y-1 mb-12 relative z-10">
-                <p className="text-[11px] font-medium uppercase tracking-[0.4em] text-slate-500">Estado de Pernambuco</p>
-                <p className="text-[15px] font-medium uppercase text-slate-900">Secretaria de Defesa Social</p>
-                <div className="inline-block border-b-2 border-slate-900 px-8 mb-2">
-                  <p className="text-[17px] font-medium uppercase text-slate-900">Polícia Militar de Pernambuco</p>
+              {/* Cabeçalho Institucional */}
+              <div className="text-center space-y-0.5 mb-10 relative z-10">
+                <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-slate-500">Estado de Pernambuco</p>
+                <p className="text-[14px] font-medium uppercase text-slate-900">Secretaria de Defesa Social</p>
+                <div className="inline-block border-b border-slate-900 px-6 mb-1">
+                  <p className="text-[16px] font-bold uppercase text-slate-900">Polícia Militar de Pernambuco</p>
                 </div>
-                <p className="text-[13px] font-medium uppercase text-slate-700 tracking-wider">{platoon.name}</p>
+                <p className="text-[12px] font-medium uppercase text-slate-700 tracking-wider">{platoon.name}</p>
                 
-                <div className="mt-8 py-6 border-y-2 border-slate-900">
-                  <h1 className="text-[25px] font-medium uppercase tracking-tight text-slate-900">Escala de Serviço Operacional</h1>
-                  <p className="text-[15px] font-medium uppercase text-slate-600 mt-2">Mês: {getFormattedMonth()} / Ano: {getYear()}</p>
+                <div className="mt-6 py-4 border-y border-slate-900">
+                  <h1 className="text-[22px] font-bold uppercase tracking-tight text-slate-900">Escala de Serviço Operacional</h1>
+                  <p className="text-[14px] font-medium uppercase text-slate-600 mt-1">Mês: {getFormattedMonth()} / Ano: {getYear()}</p>
                 </div>
               </div>
 
               {platoon.garrisons.map(garrison => (
-                <div key={garrison.id} className="mb-12 page-break-inside-avoid relative z-10">
-                  <div className="bg-slate-900 text-white p-2.5 text-center text-[12px] font-medium uppercase tracking-[0.2em] rounded-t-sm">
+                <div key={garrison.id} className="mb-8 page-break-inside-avoid relative z-10">
+                  <div className="bg-slate-900 text-white p-2 text-center text-[11px] font-bold uppercase tracking-[0.1em] rounded-t-sm">
                     GUARNIÇÃO: {garrison.name}
                   </div>
-                  <table className="w-full border-collapse border-2 border-slate-900 text-[11px]">
-                    <thead className="bg-slate-100">
+                  <table className="w-full border-collapse border border-slate-900 text-[11px]">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="border-2 border-slate-900 p-2 w-[12%] uppercase font-medium text-center">Regime</th>
-                        <th className="border-2 border-slate-900 p-2 w-[53%] uppercase font-medium text-left pl-4">Efetivo Escalado</th>
-                        <th className="border-2 border-slate-900 p-2 w-[25%] uppercase font-medium text-center">Datas</th>
-                        <th className="border-2 border-slate-900 p-2 w-[10%] uppercase font-medium text-center">Turno</th>
+                        <th className="border border-slate-900 p-1.5 w-[12%] uppercase font-bold text-center">Regime</th>
+                        <th className="border border-slate-900 p-1.5 w-[53%] uppercase font-bold text-left pl-4">Efetivo Escalado</th>
+                        <th className="border border-slate-900 p-1.5 w-[25%] uppercase font-bold text-center">Datas</th>
+                        <th className="border border-slate-900 p-1.5 w-[10%] uppercase font-bold text-center">Turno</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -157,20 +220,20 @@ export const ReportView: React.FC = () => {
                         return (
                           <tr key={teamKey}>
                             {idx === 0 && (
-                              <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-medium align-middle text-[13px] bg-white">
+                              <td rowSpan={4} className="border border-slate-900 p-1.5 text-center font-bold align-middle text-[12px] bg-white">
                                 {garrison.dutyType}
                               </td>
                             )}
-                            <td className="border-2 border-slate-900 p-3 bg-white">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <span className="bg-slate-100 text-slate-800 text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 uppercase">Equipe {teamKey}</span>
+                            <td className="border border-slate-900 p-2 bg-white">
+                              <div className="flex items-center space-x-2 mb-1.5">
+                                <span className="bg-slate-100 text-slate-900 text-[9px] font-black px-1.5 py-0.5 rounded border border-slate-200 uppercase">Eq {teamKey}</span>
                               </div>
-                              <div className="space-y-1.5 pl-1">
+                              <div className="space-y-1 pl-1">
                                   {teamOfficers.map((off, oIdx) => (
-                                  <div key={off.id} className="flex justify-between items-center border-b border-slate-50 pb-1">
+                                  <div key={off.id} className="flex justify-between items-center border-b border-slate-50 pb-0.5">
                                       <div className="flex flex-col">
-                                        <span className="uppercase font-normal text-slate-900 text-[12px]">
-                                            {off.rank} <span className="font-black text-slate-900 ml-1">{off.registration}</span> - {off.warName}
+                                        <span className="uppercase font-normal text-slate-900 text-[11.5px]">
+                                            {off.rank} <span className="font-black text-black ml-0.5">{off.registration}</span> - {off.warName}
                                         </span>
                                       </div>
                                       <span className="font-bold text-[10px] text-black uppercase tracking-tighter">
@@ -180,12 +243,12 @@ export const ReportView: React.FC = () => {
                                   ))}
                               </div>
                             </td>
-                            <td className="border-2 border-slate-900 p-2 text-center font-medium tracking-[0.1em] text-slate-900 align-middle text-[13px] bg-slate-50/10">
+                            <td className="border border-slate-900 p-1.5 text-center font-bold tracking-[0.05em] text-slate-900 align-middle text-[12px] bg-slate-50/20">
                               {days.length > 0 ? days.join(', ') : '--'}
                             </td>
                             {idx === 0 && (
-                              <td rowSpan={4} className="border-2 border-slate-900 p-2 text-center font-medium align-middle text-[11px] bg-white">
-                                07:00h<br/>às<br/>07:00h
+                              <td rowSpan={4} className="border border-slate-900 p-1.5 text-center font-bold align-middle text-[11px] bg-white leading-relaxed">
+                                {garrison.startTime || '07:00'}h<br/>às<br/>{garrison.endTime || '07:00'}h
                               </td>
                             )}
                           </tr>
@@ -196,20 +259,21 @@ export const ReportView: React.FC = () => {
                 </div>
               ))}
 
-              <div className="mt-32 flex flex-col items-center text-[12px] font-medium uppercase relative z-10">
-                <div className="w-full grid grid-cols-2 gap-24">
+              {/* Rodapé de Assinaturas no A4 */}
+              <div className="mt-20 flex flex-col items-center text-[11px] font-bold uppercase relative z-10">
+                <div className="w-full grid grid-cols-2 gap-16">
                   <div className="text-center">
-                      <div className="border-t-2 border-slate-900 pt-4 mx-auto w-4/5">
-                        <p className="text-slate-900 font-medium leading-tight">
+                      <div className="border-t border-slate-900 pt-3 mx-auto w-4/5">
+                        <p className="text-slate-900 font-bold leading-tight">
                           {data.officers.find(o => o.id === platoon.commanderId)?.rank || 'COMANDANTE'} PM {data.officers.find(o => o.id === platoon.commanderId)?.warName || ''}
                         </p>
-                        <p className="text-[11px] text-slate-600 font-medium mt-1">COMANDANTE DA UNIDADE</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">COMANDANTE DA UNIDADE</p>
                       </div>
                   </div>
                   <div className="text-center">
-                      <div className="border-t-2 border-slate-900 pt-4 mx-auto w-4/5">
-                        <p className="text-slate-900 font-medium leading-tight">CHEFE DA P/1</p>
-                        <p className="text-[11px] text-slate-600 font-medium mt-1">Sessão de Pessoal</p>
+                      <div className="border-t border-slate-900 pt-3 mx-auto w-4/5">
+                        <p className="text-slate-900 font-bold leading-tight">CHEFE DA P/1</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">Sessão de Pessoal</p>
                       </div>
                   </div>
                 </div>
@@ -217,33 +281,33 @@ export const ReportView: React.FC = () => {
             </div>
           ))}
 
-          {/* Quadro de Indisponíveis */}
-          <div className="bg-white p-10 md:p-12 print:p-8 min-h-[500px] text-slate-900 font-sans mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none mb-12 border border-slate-300 print:border-none relative z-10">
-            <div className="border-b-4 border-slate-900 pb-4 mb-10 text-center">
-              <h2 className="text-[19px] font-medium uppercase tracking-tight text-slate-900">Efetivo em Afastamento</h2>
-              <p className="text-[11px] font-medium text-slate-500 mt-1 uppercase tracking-widest">Controle Operacional</p>
+          {/* Quadro de Indisponíveis ajustado para A4 */}
+          <div className="a4-page font-sans text-slate-900 mb-12 relative z-10">
+            <div className="border-b-2 border-slate-900 pb-3 mb-8 text-center">
+              <h2 className="text-[18px] font-bold uppercase tracking-tight text-slate-900">Efetivo em Afastamento</h2>
+              <p className="text-[11px] font-medium text-slate-500 mt-0.5 uppercase tracking-widest">Controle Operacional / Aditamento</p>
             </div>
-            <table className="w-full border-collapse border-2 border-slate-900 text-[11px]">
+            <table className="w-full border-collapse border border-slate-900 text-[11px]">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="border-2 border-slate-900 p-3 w-[65%] uppercase font-medium tracking-widest text-left pl-6">Militar</th>
-                  <th className="border-2 border-slate-900 p-3 w-[35%] uppercase font-medium tracking-widest text-center">Situação</th>
+                  <th className="border border-slate-900 p-2 w-[65%] uppercase font-bold tracking-widest text-left pl-4">Militar</th>
+                  <th className="border border-slate-900 p-2 w-[35%] uppercase font-bold tracking-widest text-center">Situação</th>
                 </tr>
               </thead>
               <tbody>
                 {getUnavailableOfficers().map(off => (
                   <tr key={off.id} className="even:bg-slate-50">
-                    <td className="border-2 border-slate-900 p-3 font-normal uppercase px-8">
+                    <td className="border border-slate-900 p-2 font-normal uppercase px-6">
                       {off.rank} PM - <span className="font-black text-black">{off.registration}</span> - {off.fullName}
                     </td>
-                    <td className="border-2 border-slate-900 p-3 font-medium uppercase text-center text-red-700">
+                    <td className="border border-slate-900 p-2 font-bold uppercase text-center text-red-700">
                       {off.unavailabilityReason}
                     </td>
                   </tr>
                 ))}
                 {getUnavailableOfficers().length === 0 && (
                   <tr>
-                    <td colSpan={2} className="border-2 border-slate-900 p-12 text-center text-slate-300 italic uppercase tracking-widest">Nenhuma restrição registrada.</td>
+                    <td colSpan={2} className="border border-slate-900 p-10 text-center text-slate-300 italic uppercase tracking-widest">Nenhuma restrição registrada.</td>
                   </tr>
                 )}
               </tbody>

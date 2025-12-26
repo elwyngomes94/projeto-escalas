@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Calendar, Shield, Users, ArrowRight, Info, X, Layers, Check, AlertCircle, Search, Edit2, Copy } from 'lucide-react';
+import { Plus, Trash2, Calendar, Shield, Users, ArrowRight, Info, X, Layers, Check, AlertCircle, Search, Edit2, Copy, Clock } from 'lucide-react';
 import { loadData, saveData } from '../store';
 import { Officer, Platoon, Garrison, DutyType, TeamConfig, TeamData } from '../types';
 
@@ -27,6 +27,8 @@ export const RosterView: React.FC = () => {
   const [dutyType, setDutyType] = useState<DutyType>(DutyType.STANDARD_1X3);
   const [specificDates, setSpecificDates] = useState<string[]>([]);
   const [newDate, setNewDate] = useState('');
+  const [startTime, setStartTime] = useState('07:00');
+  const [endTime, setEndTime] = useState('07:00');
 
   useEffect(() => {
     setData(loadData());
@@ -69,7 +71,9 @@ export const RosterView: React.FC = () => {
       platoonId,
       teams,
       dutyType,
-      specificDates: dutyType === DutyType.COMPLEMENTARY ? specificDates : []
+      specificDates: dutyType === DutyType.COMPLEMENTARY ? specificDates : [],
+      startTime,
+      endTime
     };
 
     let updatedGarrisons;
@@ -103,6 +107,8 @@ export const RosterView: React.FC = () => {
     setTeams(garrison.teams);
     setDutyType(garrison.dutyType);
     setSpecificDates(garrison.specificDates || []);
+    setStartTime(garrison.startTime || '07:00');
+    setEndTime(garrison.endTime || '07:00');
     setActiveTeamTab('A');
     setIsModalOpen(true);
   };
@@ -116,6 +122,8 @@ export const RosterView: React.FC = () => {
     setDutyType(DutyType.STANDARD_1X3);
     setSpecificDates([]);
     setNewDate('');
+    setStartTime('07:00');
+    setEndTime('07:00');
   };
 
   const handleDelete = (id: string) => {
@@ -158,7 +166,6 @@ export const RosterView: React.FC = () => {
         </div>
       </div>
 
-      {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -167,6 +174,7 @@ export const RosterView: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Unidade/VTR</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Pelotão</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Regime</th>
+                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Horário</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
               </tr>
             </thead>
@@ -177,6 +185,9 @@ export const RosterView: React.FC = () => {
                   <td className="px-6 py-4 text-gray-600">{getPlatoonName(g.platoonId)}</td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-[10px] font-black">{g.dutyType}</span>
+                  </td>
+                  <td className="px-6 py-4 text-xs font-bold text-gray-500">
+                    {g.startTime || '07:00'} às {g.endTime || '07:00'}
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button onClick={() => openEditModal(g)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
@@ -189,7 +200,6 @@ export const RosterView: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Cards */}
       <div className="md:hidden space-y-3">
         {filteredGarrisons.map((g) => (
           <div key={g.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
@@ -197,6 +207,9 @@ export const RosterView: React.FC = () => {
               <div>
                 <h3 className="text-base font-bold text-gray-900">{g.name}</h3>
                 <p className="text-xs text-gray-500">{getPlatoonName(g.platoonId)}</p>
+                <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase flex items-center">
+                  <Clock className="w-3 h-3 mr-1" /> {g.startTime || '07:00'} - {g.endTime || '07:00'}
+                </p>
               </div>
               <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-black uppercase">{g.dutyType}</span>
             </div>
@@ -210,9 +223,6 @@ export const RosterView: React.FC = () => {
             </div>
           </div>
         ))}
-        {filteredGarrisons.length === 0 && (
-          <div className="text-center py-8 text-gray-400">Nenhuma escala cadastrada.</div>
-        )}
       </div>
 
       {isModalOpen && (
@@ -227,7 +237,6 @@ export const RosterView: React.FC = () => {
             </div>
 
             <div className="p-4 md:p-6 overflow-y-auto flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-6 lg:gap-8">
-              {/* Form Config Section */}
               <div className="lg:col-span-4 space-y-6 lg:border-r lg:border-gray-100 lg:pr-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                   <div className="space-y-1">
@@ -248,6 +257,16 @@ export const RosterView: React.FC = () => {
                       <option value={DutyType.STANDARD_48X144}>48x144h</option>
                       <option value={DutyType.COMPLEMENTARY}>Complementar</option>
                     </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 sm:col-span-2 lg:col-span-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase">Início</label>
+                      <input type="time" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-bold" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase">Fim</label>
+                      <input type="time" className="w-full px-4 py-3 bg-slate-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 font-bold" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                    </div>
                   </div>
                 </div>
 
@@ -284,7 +303,6 @@ export const RosterView: React.FC = () => {
                 )}
               </div>
 
-              {/* Selection Section */}
               <div className="lg:col-span-8 flex flex-col min-h-[400px]">
                 <div className="flex space-x-1 mb-4 bg-gray-100 p-1.5 rounded-2xl shrink-0">
                   {(['A', 'B', 'C', 'D'] as ActiveTeam[]).map(t => (

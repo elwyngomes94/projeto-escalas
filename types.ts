@@ -66,4 +66,6 @@ export interface Garrison {
   teams: TeamConfig;
   dutyType: DutyType;
   specificDates?: string[];
+  startTime?: string;
+  endTime?: string;
 }

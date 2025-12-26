@@ -4,26 +4,25 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js';
 /**
  * CONFIGURAÇÃO DO SUPABASE
  * 
- * ATENÇÃO: Substitua as constantes abaixo pelos valores reais do seu painel Supabase:
+ * Substitua os valores abaixo pelos encontrados em seu painel:
  * Settings -> API -> Project URL / anon public key
  */
-const SUPABASE_URL = 'https://seu-projeto.supabase.co'; // <--- ALTERE AQUI
-const SUPABASE_KEY = 'sua-chave-anon-public';         // <--- ALTERE AQUI
+const SUPABASE_URL = 'https://seu-projeto.supabase.co'; 
+const SUPABASE_KEY = 'sua-chave-anon-public';
 
-// Validação para evitar erros de rede antes da configuração
 export const isConfigured = !SUPABASE_URL.includes('seu-projeto') && SUPABASE_KEY !== 'sua-chave-anon-public';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /*
   =============================================================================
-  SCRIPT SQL PARA O SUPABASE (Copie e execute no 'SQL Editor' do seu painel)
+  SCRIPT SQL DEFINITIVO (Execute no 'SQL Editor' do Supabase)
   =============================================================================
 
-  -- 1. Habilitar extensões necessárias
+  -- 1. Extensão para UUID
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-  -- 2. Tabela de Militares (Efetivo)
+  -- 2. Tabela de Militares (Efetivo) com UNIQUE na Matrícula
   CREATE TABLE IF NOT EXISTS officers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     full_name TEXT NOT NULL,
@@ -59,17 +58,17 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );
 
-  -- 5. Segurança (RLS) - Permite acesso total para desenvolvimento
+  -- 5. Habilitar RLS (Acesso Público para Desenvolvimento)
   ALTER TABLE officers ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Public Access" ON officers FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Acesso Total" ON officers FOR ALL USING (true) WITH CHECK (true);
 
   ALTER TABLE platoons ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Public Access" ON platoons FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Acesso Total" ON platoons FOR ALL USING (true) WITH CHECK (true);
 
   ALTER TABLE garrisons ENABLE ROW LEVEL SECURITY;
-  CREATE POLICY "Public Access" ON garrisons FOR ALL USING (true) WITH CHECK (true);
+  CREATE POLICY "Acesso Total" ON garrisons FOR ALL USING (true) WITH CHECK (true);
 
-  -- 6. Índices de busca
-  CREATE INDEX IF NOT EXISTS idx_officers_reg ON officers(registration);
-  CREATE INDEX IF NOT EXISTS idx_garrisons_plat ON garrisons(platoon_id);
+  -- 6. Índices para Performance
+  CREATE INDEX IF NOT EXISTS idx_off_reg ON officers(registration);
+  CREATE INDEX IF NOT EXISTS idx_gar_plat ON garrisons(platoon_id);
 */

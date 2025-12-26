@@ -8,11 +8,11 @@ interface StorageData {
   garrisons: Garrison[];
 }
 
+// Helper para validar UUID
+const isValidUUID = (id: string) => /^[0-9a-fA-F-]{36}$/.test(id);
+
 export const loadData = async (): Promise<StorageData> => {
-  if (!isConfigured) {
-    console.warn("Supabase não configurado. Verifique o arquivo supabase.ts");
-    return { officers: [], platoons: [], garrisons: [] };
-  }
+  if (!isConfigured) return { officers: [], platoons: [], garrisons: [] };
 
   try {
     const [offRes, platRes, garRes] = await Promise.all([
@@ -56,7 +56,7 @@ export const loadData = async (): Promise<StorageData> => {
 
     return { officers, platoons, garrisons };
   } catch (error) {
-    console.error("Erro ao carregar dados do Supabase:", error);
+    console.error("Erro crítico ao carregar dados:", error);
     return { officers: [], platoons: [], garrisons: [] };
   }
 };
@@ -74,13 +74,16 @@ export const upsertOfficer = async (officer: Officer) => {
     custom_reason: officer.customReason || null
   };
 
-  if (officer.id && officer.id.length > 30) {
+  if (officer.id && isValidUUID(officer.id)) {
     payload.id = officer.id;
   }
 
   const { data, error } = await supabase
     .from('officers')
-    .upsert(payload, { onConflict: 'registration' })
+    .upsert(payload, { 
+      onConflict: 'registration',
+      ignoreDuplicates: false 
+    })
     .select();
 
   if (error) throw error;
@@ -88,7 +91,7 @@ export const upsertOfficer = async (officer: Officer) => {
 };
 
 export const deleteOfficer = async (id: string) => {
-  if (!isConfigured) return;
+  if (!isConfigured || !isValidUUID(id)) return;
   const { error } = await supabase.from('officers').delete().eq('id', id);
   if (error) throw error;
 };
@@ -98,16 +101,19 @@ export const upsertPlatoon = async (platoon: Platoon) => {
   const payload: any = {
     name: platoon.name,
     city: platoon.city,
-    commander_id: platoon.commanderId || null
+    commander_id: platoon.commanderId && isValidUUID(platoon.commanderId) ? platoon.commanderId : null
   };
-  if (platoon.id && platoon.id.length > 30) payload.id = platoon.id;
+  
+  if (platoon.id && isValidUUID(platoon.id)) {
+    payload.id = platoon.id;
+  }
   
   const { error } = await supabase.from('platoons').upsert(payload);
   if (error) throw error;
 };
 
 export const deletePlatoon = async (id: string) => {
-  if (!isConfigured) return;
+  if (!isConfigured || !isValidUUID(id)) return;
   const { error } = await supabase.from('platoons').delete().eq('id', id);
   if (error) throw error;
 };
@@ -123,14 +129,17 @@ export const upsertGarrison = async (garrison: Garrison) => {
     start_time: garrison.startTime,
     end_time: garrison.endTime
   };
-  if (garrison.id && garrison.id.length > 30) payload.id = garrison.id;
+
+  if (garrison.id && isValidUUID(garrison.id)) {
+    payload.id = garrison.id;
+  }
   
   const { error } = await supabase.from('garrisons').upsert(payload);
   if (error) throw error;
 };
 
 export const deleteGarrison = async (id: string) => {
-  if (!isConfigured) return;
+  if (!isConfigured || !isValidUUID(id)) return;
   const { error } = await supabase.from('garrisons').delete().eq('id', id);
   if (error) throw error;
 };

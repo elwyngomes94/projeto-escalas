@@ -112,7 +112,7 @@ export const ReportView: React.FC = () => {
       <div ref={reportRef} className="bg-gray-100 py-4 no-print-space overflow-x-auto rounded-xl md:rounded-none">
         <div className="inline-block min-w-full md:block">
           {platoonsWithGarrisons.map((platoon) => (
-            <div key={platoon.id} className="bg-white p-6 md:p-14 print:p-8 min-h-[1100px] text-slate-900 font-serif mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none print:break-after-page border border-slate-300 print:border-none relative overflow-hidden mb-10 md:mb-12">
+            <div key={platoon.id} className="bg-white p-6 md:p-14 print:p-8 min-h-[1100px] text-slate-900 font-sans mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none print:break-after-page border border-slate-300 print:border-none relative overflow-hidden mb-10 md:mb-12">
               
               {/* Watermark */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none select-none rotate-[-45deg] z-0">
@@ -163,7 +163,7 @@ export const ReportView: React.FC = () => {
                             )}
                             <td className="border-2 border-slate-900 p-3 bg-white">
                               <div className="flex items-center space-x-2 mb-2">
-                                <span className="bg-slate-100 text-slate-800 text-[9px] font-medium px-2 py-0.5 rounded border border-slate-200">EQ {teamKey}</span>
+                                <span className="bg-slate-100 text-slate-800 text-[9px] font-bold px-2 py-0.5 rounded border border-slate-200 uppercase">Equipe {teamKey}</span>
                               </div>
                               <div className="space-y-1.5 pl-1">
                                   {teamOfficers.map((off, oIdx) => (
@@ -173,7 +173,7 @@ export const ReportView: React.FC = () => {
                                             {off.rank} <span className="font-black text-slate-900 ml-1">{off.registration}</span> - {off.warName}
                                         </span>
                                       </div>
-                                      <span className="font-normal text-[10px] text-slate-300 uppercase italic tracking-tighter">
+                                      <span className="font-bold text-[10px] text-black uppercase tracking-tighter">
                                         {getRoleLabel(oIdx)}
                                       </span>
                                   </div>
@@ -218,7 +218,7 @@ export const ReportView: React.FC = () => {
           ))}
 
           {/* Quadro de Indisponíveis */}
-          <div className="bg-white p-10 md:p-12 print:p-8 min-h-[500px] text-slate-900 font-serif mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none mb-12 border border-slate-300 print:border-none relative z-10">
+          <div className="bg-white p-10 md:p-12 print:p-8 min-h-[500px] text-slate-900 font-sans mx-auto w-[900px] max-w-full shadow-2xl print:shadow-none mb-12 border border-slate-300 print:border-none relative z-10">
             <div className="border-b-4 border-slate-900 pb-4 mb-10 text-center">
               <h2 className="text-[19px] font-medium uppercase tracking-tight text-slate-900">Efetivo em Afastamento</h2>
               <p className="text-[11px] font-medium text-slate-500 mt-1 uppercase tracking-widest">Controle Operacional</p>
@@ -234,7 +234,7 @@ export const ReportView: React.FC = () => {
                 {getUnavailableOfficers().map(off => (
                   <tr key={off.id} className="even:bg-slate-50">
                     <td className="border-2 border-slate-900 p-3 font-normal uppercase px-8">
-                      {off.rank} PM - <span className="font-black">{off.registration}</span> - {off.fullName}
+                      {off.rank} PM - <span className="font-black text-black">{off.registration}</span> - {off.fullName}
                     </td>
                     <td className="border-2 border-slate-900 p-3 font-medium uppercase text-center text-red-700">
                       {off.unavailabilityReason}

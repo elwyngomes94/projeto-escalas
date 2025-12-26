@@ -1,131 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, UserCheck, UserX, AlertCircle, FileUp, X, Check, Loader2, Database } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, UserCheck, UserX, AlertCircle, FileUp, X, Check, Loader2, Database, ClipboardPaste, ListFilter } from 'lucide-react';
 import { loadData, upsertOfficer, deleteOfficer } from '../store';
 import { Officer, Rank, UnavailabilityReason } from '../types';
-
-// Lista oficial fornecida pelo usuário para importação em lote
-const OFFICIAL_LIST_RAW = `CRISTOVÃO	1021230	TEN.CEL	CRISTOVÃO ISAAC RODRIGUES MAGALHÃES
-EDVAN	9807721	CAP	EDVAN ARRUDA FERRAZ
-MYKE	119793 2	2º TEN	JOSEPH MYKE DA SILVA
-TAVARES	1260782	2º TEN	PAULO HENRIQUE DA SILVA TAVARES
-HUMBERTO	1260790	2º TEN	HUMBERTO VICTOR ALBUQUERQUE DE VASCONCELOS
-RONALDO	9504001	119793- 2	RONALDO DO NASCIMENTO LOPES
-E. PEREIRA	1030434	ST	EDINALDO PEREIRA DA SILVA
-BERREDO	1055275	ST	DOALCEY BERREDO VILANOVA DOS SANTOS
-EDMAR	1056190	1º SGT	EDMAR PEREIRA DA SILVA FILHO
-OSMILAN	1031554	ST	OSMILAN SOARES DA SILVA
-JAIRO	9210580	2º SGT	JAIRO GOMES LOPES
-NASCIMENTO	9900977	2º SGT	FRANCISCO DE ASSIS DO NASCIMENTO
-ANDRADE	9210431	2º SGT	FRANCISCO JOSÉ ALENCAR ANDRADE
-TEÓFILO	9210520	2º SGT	TEÓFILO CESARIO DA SILVA
-EUDES	9400303	2º SGT	EUDES VITO ARAUJO
-WILDES	9403191	2º SGT	CARLOS WILDES DA SILVA FILHO
-CALDEIRA	9403116	2º SGT	EDSON CALDEIRA DA SILVA
-TOMAZ	1063863	2º SGT	SAMUEL TOMAZ SANTOS DE JESUS
-NERI	9807080	2'º SGT	SILVANIO NERI DA SILVA
-ERIVAN	1053817	2º SGT	JOSE ERIVAN LIMA SILVINO
-ERONILDO	1064720	2º SGT	JACKSON ERONILDO NUNES DE SOUZA
-PRISCILA	1074636	3º SGT	PRISCILA RAQUEL TORRES CIPRIANO DA SILVA
-KLEBER	1070517	2º SGT	KLEBER DE SOUSA BATISTA
-DEYWD	1076434	3º SGT	DEYWD ALEXANDRE TEIXEIRA SARAIVA
-ERIVANO	1077007	3º SGT	ERIVANO FRANCISCO DE OLIVEIRA
-JEFFERSON	1079700	3ºSGT	JEFFERSON THIAGO CIPRIANO DA SILVA
-DUARTE SOUZA	1065432	3º SGT	WASHINTON ANTONIO DUARTE DE SOUZA
-P. JACINTO	1092901	3º SGT	FRANCISCO PEREIRA JACINTO
-MOTA	1101471	3º SGT	ANDERSON MOTA DOS SANTOS
-SILVA SOUZA	1105000	3º SGT	FABIO DA SILVA SOUZA
-EWERTON	1077899	3º SGT	EWERTON FERINO CARNEIRO
-CICERO ROCHA	1098500	3º SGT	CICERO HELYSON ROCHA DOS SANTOS
-GICLAUDIO	1101307	3º SGT	GICLAUDIO DA SILVA PEREIRA
-RODRIGUES SOUZA	1103512	3º SGT	WASHINGTON RODRIGUES DE SOUZA
-C. HOLANDA	1111612	3º SGT	CICERO CLEMENTINO DE HOLANDA
-EDNO	1094262	3º SGT	EDNO PEREIRA DE LIMA
-CARLOS	1090534	3º SGT	CARLOS ANTONIO NOVAES PEREIRA
-MAYKE	1093770	3º SGT	MAYKE DA SILVA PIRES
-FÁBIO COELHO	1112104	CB	JOSE FABIO DE SOUZA COELHO
-BENEVALDO	1113631	3º SGT	BENEVALDO BRANDÃO SILVA
-ANDRES	1131966	CB	MEYGLES ANDRES RODRIGUES ALVES
-SERAFIM	1137530	CB	JAMESSON SERAFIM GOMES
-VIDAL BEZERRA	1140213	CB	GLEILSON VIDAL BEZERRA
-JACKSON	1152602	CB	JACKSON DE SOUZA ROCHA
-HONORATO	1152840	CB	MARINALDO LACERDA HONORATO FILHO
-MAGNO ALENCAR	1155083	CB	CHARLES MAGNO ALVES DE ALENCAR
-BARROS	1156098	CB	ROGÉRIO LOPES DE BARROS
-FELINTO	1157388	CB	SAULO FELINTO CAVALCANTE
-CORDEIRO SANTOS	1163450	CB	ANTONIO MARCOS CORDEIRO DOS SANTOS
-LACERDA	1172441	CB	NILSON ROBERTO LACERDA PEREIRA
-RONIVON	117696-0	CB	RONIVON PAULINO ALVES
-ARISON	1175190	CB	DEYVID ARISON DOS SANTOS SILVA
-S. CORDEIRO	1138146	CB	ALEXANDRE DA SILVA CORDEIRO
-LOURENÇO	1177451	CB	ALAN LOURENÇO SOARES DE SOUZA
-TIAGO NERI	1177630	CB	WILLAMY TIAGO NERI BORGES
-CHARLES SILVA	1182528	CB	WILLYAMIS CHARLES ALVES DA SILVA
-WALDEBERTO	1196588	CB	WALDEBERTO MOURA FONTES FEITOSA
-RICARTE	1201328	CB	CARLA LEITE RICARTE
-J. RIBEIRO	1201352	CB	JONATHANS RIBEIRO DE OLIVEIRA
-SEBASTIÃO	1201425	CB	SEBASTIAO DE SOUZA SANTOS
-MAIA	1202928	CB	JOAO DAVI MAIA DE LUNA
-MACEDO	1203010	CB	MICHEL GOMES MACEDO
-DUTRA	1203118	CB	LUCAS RAFAEL DUTRA DE OLIVEIRA ANJOS
-FONSECA	1203533	CB	GABRIEL FONSECA TORRES
-EDUARDO NASCIMENTO	1204254	CB	ITALO EDUARDO DO NASCIMENTO ALENCAR
-GEORGE PEREIRA	1204564	CB	JOSÉ GEORGE PEREIRA DE OLIVEIRA
-FRANCIELVES	1204971	CB	FRANCIELVES DO NASCIMENTO
-ROBSON	1205919	SD	FRANCISCO ROBSON DOS SANTOS DA SILVA CRUZ
-ALENCAR	1207342	SD	DIEGO BARROS DE ALENCAR
-F. NUNES	1210220	SD	FIDEL LUCAS DE CARVALHO NUNES
-LUCENA	1092820	SD	TERLON HENRIQUESTONE LUCENA SANTANA
-FAUSTO	1215159	SD	FAUSTO AUGUSTINHO PEREIRA DA SILVA
-FRANKLIN	1216147	SD	FRANKLIN DE CASTRO LEAL
-DIAS	1216368	SD	ANDERSON VIEIRA DIAS ALENCAR
-EVERTON ALENCAR	1216678	SD	EVERTON VASCONCELOS ALENCAR
-ISMAEL PEREIRA	1216775	SD	ISMAEL PEREIRA DA SILVA
-ALEX	1217089	SD	FRANCISCO ALEX DE OLIVEIRA RODRIGUES
-CÉSAR FILHO	1217674	SD	JOAO CESAR DA SILVA FILHO
-SOBREIRA	1218751	SD	ERISVALDO MANOEL SOBREIRA
-ECLESYO	1219049	SD	ECLESYO BEZERRA ALMEIDA
-ERICSON DUARTE	1219600	SD	ANTONIO ÉRICSON DUARTE BENTO
-WEBSTER	1220063	SD	WEBSTER WENDY DOS SANTOS SILVA
-ELWYN GOMES	1221027	SD	ELWYN DA SILVA GOMES
-JARDENIA	1221035	SD	JARDENIA DA SILVA LIMA
-WYLKER	1221280	SD	WYLKER MOREIRA NOGUEIRA
-LISBOA	1225600	SD	ISMAYLLON ROBSON DE NEGREIROS LISBOA
-ANDRÉ LUIZ	1225383	SD	ANDRE LUIZ SILVA CARVALHO
-J. MUNIZ	1226681	SD	JOCIVAN MUNIZ DE SOUSA
-MARTINS	1237578	SD	JAKSON JOSÉ MARTINS RODRIGUES
-MADEIRA	1239040	SD	CLEITON CARLOS MADEIRA
-COELHO	1240030	SD	WILDEMBERG REGIS COELHO
-GIVALDO JÚNIOR	1240250	SD	GIVALDO ALVES DOS SANTOS JUNIOR
-PIMENTEL	1240374	SD	FILLIPE PIMENTEL DA PAIXAO
-NETO	1242008	SD	PEDRO PILE DA SILVA NETO
-S. NOGUEIRA	1241362	SD	SANDERSON SANTOS NOGUEIRA
-ALVES	1242822	SD	FELIPE AMORIM ALVES
-STENIO	1251970	SD	STENIO SAMPAIO DA SILVA
-GUTEMBERG	1252038	SD	GUTEMBERG FERREIRA DA SILVA
-GUSTAVO FERREIRA	1252135	SD	LUIZ GUSTAVO DOS SANTOS FERREIRA
-MARLLON	1252143	SD	MARLLON ALEKSANDER FONSECA ESPÍRITO SANTO
-LINS	1252178	SD	DAVI OLIVEIRA LINS DA SILVA
-ELTON	1252194	SD	ELTON BARBOSA SANTOS
-THUANY	1252364	SD	JAMILLE THUANY ALENCAR LEITE
-SILVA	1252712	SD	WQUEVEN LUNA DA SILVA
-PEDRO	1252771	SD	PEDRO HENRIQUE DA SILVA PINHEIRO
-RICARDO NASCIMENTO	1254073	SD	RAFAEL RICARDO DE SOUSA NASCIMENTO
-FRANCINETE	1254251	SD	ELANE FRANCINETE DE JESUS NOGUEIRA
-DA SILVA	1255851	SD	EDIGLEDSON PEREIRA DA SILVA
-R. PEREIRA	1255967	SD	RUAN PEREIRA BARBOSA
-NATANAEL	1256688	SD	WESLEY NATANAEL DOS SANTOS SOUZA
-MONTE SANTO	1256947	SD	MICAEL MARTINS MONTE SANTO
-RUTH ALENCAR	1289985	SD	RUTH ELLEN CRUZ ALENCAR
-DIOGENES	1259180	SD	THARLLES DIOGENES SANTANA LUCENA
-MARIA	1260901	SD	MARIA IARA DE MORAIS ROSENDO
-LEAL	1261282	SD	EVALDO LEAL FILHO
-ELIEUZA LEAL	1263846	SD	ELIEUZA LEAL LIMA
-RIOMAR	320536	2º SGT	RIOMAR
-CARLOS	1090534	3º SGT	CARLOS ANTONIO NOVAES PEREIRA
-ALEXANDRO	1047752	2ª SGT	ALEXANDRO
-TERTO	1218360	SD	TERTO
-WESLEY LEITE	1206770	SD	JOSÉ WESLEY ARAUJO LEITE`;
 
 export const OfficerView: React.FC = () => {
   const [officers, setOfficers] = useState<Officer[]>([]);
@@ -133,7 +10,12 @@ export const OfficerView: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Import State
+  const [importText, setImportText] = useState('');
+  const [importPreview, setImportPreview] = useState<any[]>([]);
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -157,46 +39,75 @@ export const OfficerView: React.FC = () => {
 
   const mapRank = (rankStr: string): Rank => {
     const cleanRank = rankStr?.trim().toUpperCase() || '';
-    if (cleanRank.includes('TEN.CEL')) return Rank.TC;
+    if (cleanRank.includes('TEN.CEL') || cleanRank.includes('TC')) return Rank.TC;
+    if (cleanRank.includes('MAJ')) return Rank.MAJ;
     if (cleanRank.includes('CAP')) return Rank.CAP;
-    if (cleanRank.includes('2º TEN') || cleanRank.includes('2ºTEN')) return Rank.TEN2;
-    if (cleanRank.includes('1º TEN')) return Rank.TEN1;
-    if (cleanRank.includes('ST')) return Rank.SUB;
-    if (cleanRank.includes('1º SGT')) return Rank.SGT1;
-    if (cleanRank.includes('2º SGT') || cleanRank.includes('2ª SGT') || cleanRank.includes("2'º SGT")) return Rank.SGT2;
+    if (cleanRank.includes('1º TEN') || cleanRank.includes('1ºTEN')) return Rank.TEN1;
+    if (cleanRank.includes('2º TEN') || cleanRank.includes('2ºTEN') || cleanRank.includes('2 TEN')) return Rank.TEN2;
+    if (cleanRank.includes('ST') || cleanRank.includes('SUB')) return Rank.SUB;
+    if (cleanRank.includes('1º SGT') || cleanRank.includes('1ºSGT')) return Rank.SGT1;
+    if (cleanRank.includes('2º SGT') || cleanRank.includes('2ºSGT') || cleanRank.includes('2ª SGT') || cleanRank.includes("2'º SGT")) return Rank.SGT2;
     if (cleanRank.includes('3º SGT') || cleanRank.includes('3ºSGT')) return Rank.SGT3;
     if (cleanRank.includes('CB')) return Rank.CB;
     if (cleanRank.includes('SD')) return Rank.SD;
     return Rank.SD;
   };
 
-  const handleImportOfficialList = async () => {
-    if (!confirm(`Deseja importar a lista oficial de efetivo? Isso processará aproximadamente ${OFFICIAL_LIST_RAW.trim().split('\n').length} registros.`)) return;
+  // Analisa o texto colado para gerar um preview
+  const analyzeImportText = () => {
+    const lines = importText.trim().split('\n');
+    const preview: any[] = [];
+
+    lines.forEach(line => {
+      // Tenta separar por Tab, se não encontrar tenta por múltiplos espaços
+      let parts = line.split('\t').map(p => p.trim());
+      if (parts.length < 2) {
+        parts = line.split(/\s{2,}/).map(p => p.trim());
+      }
+      
+      // Se ainda não tiver partes suficientes, pula o cabeçalho ou linhas inválidas
+      if (parts.length < 3) return;
+      if (parts[0].toUpperCase().includes('NOME DE GUERRA')) return;
+
+      const warNamePart = parts[0];
+      const regPart = parts[1]?.replace(/[^\d]/g, ''); // Remove tudo que não é número
+      const rankPart = parts[2];
+      const fullNamePart = parts[3] || parts[0];
+
+      if (regPart && fullNamePart) {
+        preview.push({
+          warName: warNamePart,
+          registration: regPart,
+          rank: mapRank(rankPart),
+          fullName: fullNamePart,
+          status: officers.some(o => o.registration === regPart) ? 'update' : 'new'
+        });
+      }
+    });
+
+    setImportPreview(preview);
+  };
+
+  useEffect(() => {
+    if (importText) analyzeImportText();
+    else setImportPreview([]);
+  }, [importText, officers]);
+
+  const handleProcessImport = async () => {
+    if (importPreview.length === 0) return;
     
     setIsImporting(true);
-    const lines = OFFICIAL_LIST_RAW.trim().split('\n');
     let successCount = 0;
     let errorCount = 0;
 
-    for (const line of lines) {
-      const parts = line.split('\t').map(s => s?.trim());
-      // Estrutura: NOME_GUERRA \t MATRICULA \t POSTO/GRAD \t NOME_COMPLETO
-      const warNamePart = parts[0];
-      const regPart = parts[1];
-      const rankPart = parts[2];
-      const fullNamePart = parts[3];
-
-      if (!regPart || !fullNamePart) {
-        continue;
-      }
-
+    for (const item of importPreview) {
       try {
         const officer: any = {
-          id: '', // UUID gerado pelo Supabase
-          fullName: fullNamePart,
-          registration: regPart.replace(/\s+/g, ''),
-          rank: mapRank(rankPart),
-          warName: warNamePart || fullNamePart.split(' ')[0],
+          id: '', 
+          fullName: item.fullName,
+          registration: item.registration,
+          rank: item.rank,
+          warName: item.warName,
           isAvailable: true,
           unavailabilityReason: UnavailabilityReason.NONE,
           customReason: ''
@@ -204,12 +115,14 @@ export const OfficerView: React.FC = () => {
         await upsertOfficer(officer);
         successCount++;
       } catch (e) {
-        console.error('Erro ao importar policial:', fullNamePart, e);
+        console.error('Erro:', item.fullName, e);
         errorCount++;
       }
     }
 
     setIsImporting(false);
+    setIsImportModalOpen(false);
+    setImportText('');
     alert(`Importação concluída!\nSucesso: ${successCount}\nErros: ${errorCount}`);
     refreshData();
   };
@@ -224,7 +137,7 @@ export const OfficerView: React.FC = () => {
       const newOfficer: any = {
         id: editingId || '',
         fullName,
-        registration,
+        registration: registration.replace(/[^\d]/g, ''),
         rank,
         warName,
         isAvailable,
@@ -301,12 +214,10 @@ export const OfficerView: React.FC = () => {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={handleImportOfficialList}
-              disabled={isImporting}
-              className="flex items-center justify-center bg-slate-800 text-white px-4 py-3 rounded-xl hover:bg-slate-900 transition-colors shadow-sm font-bold text-sm disabled:opacity-50"
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center justify-center bg-slate-800 text-white px-4 py-3 rounded-xl hover:bg-slate-900 transition-colors shadow-sm font-bold text-sm"
             >
-              {isImporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Database className="w-4 h-4 mr-2" />}
-              Importar Lista Oficial
+              <Database className="w-4 h-4 mr-2" /> Importar Lista
             </button>
             <button
               onClick={() => openModal()}
@@ -384,6 +295,109 @@ export const OfficerView: React.FC = () => {
             ))}
           </div>
         </>
+      )}
+
+      {/* Modal de Importação em Lote */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+              <div className="flex items-center">
+                <Database className="w-6 h-6 mr-3 text-amber-500" />
+                <div>
+                  <h2 className="text-xl font-bold">Importação de Efetivo</h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Colagem Direta de Lista Oficial</p>
+                </div>
+              </div>
+              <button onClick={() => setIsImportModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
+              {/* Área de Colagem */}
+              <div className="lg:w-1/2 p-6 flex flex-col space-y-4 border-b lg:border-b-0 lg:border-r border-gray-100">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase flex items-center">
+                      <ClipboardPaste className="w-4 h-4 mr-1" /> Cole aqui os dados (Excel/Tab)
+                    </label>
+                    <span className="text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-black">NOME MATRÍCULA POSTO COMPLETO</span>
+                  </div>
+                  <textarea
+                    className="w-full h-64 lg:h-full p-4 bg-slate-50 border border-gray-200 rounded-2xl font-mono text-xs outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                    placeholder="Exemplo:&#10;CRISTOVÃO  1021230  TEN.CEL  CRISTOVÃO ISAAC&#10;EDVAN  9807721  CAP  EDVAN ARRUDA"
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Área de Preview */}
+              <div className="lg:w-1/2 p-6 flex flex-col bg-slate-50/50">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-black text-slate-800 uppercase flex items-center">
+                    <ListFilter className="w-4 h-4 mr-2" /> Pré-visualização ({importPreview.length})
+                  </h3>
+                  {importPreview.length > 0 && (
+                     <div className="flex gap-2">
+                        <span className="flex items-center text-[9px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
+                          <Plus className="w-3 h-3 mr-1" /> {importPreview.filter(p => p.status === 'new').length} NOVOS
+                        </span>
+                        <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                          <Edit2 className="w-3 h-3 mr-1" /> {importPreview.filter(p => p.status === 'update').length} ATUALIZAR
+                        </span>
+                     </div>
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                  {importPreview.length > 0 ? (
+                    importPreview.map((item, idx) => (
+                      <div key={idx} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">
+                             {idx + 1}
+                           </div>
+                           <div>
+                             <p className="text-[11px] font-black text-slate-900 leading-none mb-1">{item.rank} {item.warName}</p>
+                             <p className="text-[10px] text-slate-500 truncate max-w-[150px]">{item.fullName}</p>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-mono font-bold text-slate-400">{item.registration}</p>
+                          <span className={`text-[8px] font-black uppercase ${item.status === 'new' ? 'text-green-600' : 'text-blue-600'}`}>
+                            {item.status === 'new' ? 'Novo Registro' : 'Já Cadastrado'}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-300 space-y-3">
+                      <AlertCircle className="w-12 h-12 opacity-20" />
+                      <p className="text-xs font-bold uppercase tracking-widest text-center px-10">
+                        Os dados processados aparecerão aqui para conferência antes de salvar.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setIsImportModalOpen(false)} className="px-6 py-3 font-bold text-gray-500 hover:text-gray-700">Cancelar</button>
+              <button
+                disabled={importPreview.length === 0 || isImporting}
+                onClick={handleProcessImport}
+                className="px-10 py-4 bg-amber-600 text-white rounded-2xl font-black shadow-xl shadow-amber-600/20 active:scale-95 transition-transform disabled:opacity-50 disabled:grayscale"
+              >
+                {isImporting ? (
+                  <span className="flex items-center"><Loader2 className="w-5 h-5 mr-2 animate-spin" /> PROCESSANDO...</span>
+                ) : (
+                  <span className="flex items-center"><Check className="w-5 h-5 mr-2" /> CONFIRMAR E IMPORTAR</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Individual Modal */}
